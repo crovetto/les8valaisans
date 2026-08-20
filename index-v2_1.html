@@ -274,7 +274,7 @@ input[type="range"].grade-range:focus::-moz-range-thumb{box-shadow:0 0 0 3px var
   height:100%;
 }
 
-.chart-with-yaxis{display:flex;gap:8px;align-items:flex-start;}
+.chart-with-yaxis{display:grid;grid-template-columns:auto 26px minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto;column-gap:8px;align-items:stretch;}
 .yaxis-title{
   align-self:center;
   writing-mode:vertical-rl;
@@ -300,9 +300,9 @@ input[type="range"].grade-range:focus::-moz-range-thumb{box-shadow:0 0 0 3px var
 .gradebar .seg-todo{background:var(--yellow);}
 .gradebar .seg-other{background:var(--gray);}
 .gradebar-label-row{
+  grid-column:3;
   display:flex;
   gap:6px;
-  margin-left:34px;
   padding-top:6px;
 }
 
@@ -862,13 +862,14 @@ function gradeChartHtml(routes){
             </div>`;
         }).join('')}
 
-      </div>
-    </div>
+            </div>
 
-    <div class="gradebar-label-row">
-      ${byGrade.map(x=>`
-        <div class="gradebar-lbl">${escapeHtml(x.g)}</div>
-      `).join('')}
+      <div class="gradebar-label-row">
+        ${byGrade.map(x=>`
+          <div class="gradebar-lbl">${escapeHtml(x.g)}</div>
+        `).join('')}
+      </div>
+
     </div>
 
     <div class="axis-caption">Cotation des voies</div>
