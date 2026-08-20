@@ -204,27 +204,131 @@ body{
   }
 }
 
-/* ---- Top nav ---- */
-.topnav{
-  display:flex;align-items:center;gap:24px;
-  padding:14px 4px;margin-bottom:20px;
-  border-bottom:1px solid var(--border);
-  position:sticky;top:0;background:var(--bg);z-index:40;
-  flex-wrap:wrap;
-}
-.brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;margin-right:8px;}
-.brand svg{flex-shrink:0;}
-.navtabs{display:flex;gap:4px;flex-wrap:wrap;flex:1;}
-.navtab{
-  display:flex;align-items:center;gap:6px;
-  padding:8px 12px;border-radius:var(--radius-sm);
-  color:var(--text-dim);font-size:13px;font-weight:600;
-  cursor:pointer;border:1px solid transparent;
-  background:none;
-}
-.navtab:hover{color:var(--text);background:var(--card-alt);}
-.navtab.active{color:var(--title);background:var(--card-alt);border-color:var(--border);}
+/* ---- Header + sidebar ---- */
 
+.app-header{
+  height:64px;
+  display:flex;
+  align-items:center;
+  padding:0 18px;
+  border-bottom:1px solid var(--border);
+  background:var(--bg);
+  position:sticky;
+  top:0;
+  z-index:40;
+}
+
+.menu-button{
+  width:42px;
+  height:42px;
+  border:0;
+  background:transparent;
+  color:var(--text);
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:8px;
+}
+
+.menu-button:hover{
+  background:var(--card-alt);
+}
+
+.menu-button svg{
+  width:24px;
+  height:24px;
+}
+
+.header-brand{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-weight:700;
+  margin-left:10px;
+}
+
+.sidebar-overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.55);
+  z-index:79;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .2s ease;
+}
+
+.sidebar-overlay.open{
+  opacity:1;
+  pointer-events:auto;
+}
+
+.sidebar{
+  position:fixed;
+  top:0;
+  left:0;
+  width:270px;
+  height:100vh;
+  background:var(--card);
+  border-right:1px solid var(--border);
+  z-index:80;
+  transform:translateX(-100%);
+  transition:transform .22s ease;
+  display:flex;
+  flex-direction:column;
+}
+
+.sidebar.open{
+  transform:translateX(0);
+}
+
+.sidebar-header{
+  height:64px;
+  display:flex;
+  align-items:center;
+  padding:0 18px;
+  border-bottom:1px solid var(--border);
+  font-weight:800;
+}
+
+.sidebar-nav{
+  padding:14px 10px;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+
+.sidebar-item{
+  width:100%;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  border:0;
+  background:transparent;
+  color:var(--text-dim);
+  padding:11px 12px;
+  border-radius:9px;
+  cursor:pointer;
+  font:inherit;
+  font-weight:600;
+  text-align:left;
+}
+
+.sidebar-item:hover{
+  background:var(--card-alt);
+  color:var(--text);
+}
+
+.sidebar-item.active{
+  background:var(--card-alt);
+  color:var(--title);
+}
+
+.sidebar-item svg{
+  width:19px;
+  height:19px;
+  flex-shrink:0;
+}
 /* ---- Layout grid ---- */
 .grid{display:grid;grid-template-columns:1fr;gap:16px;margin-top:16px;margin-bottom:16px;}
 @media(min-width:900px){
@@ -844,6 +948,7 @@ const PersonalStore = (function(){
 const state = {
   isAuthenticated: false,
   user: {firstName: 'Samuel'},
+  menuOpen: false,
   authView: 'login',             // login | signup | forgot
   view: 'accueil',               // accueil | regions | todo | params
   nav: { region:null, lieu:null, secteur:null },
@@ -1301,16 +1406,59 @@ function topnavHtml(){
     {id:'todo', label:'À faire', icon:iconCheck()},
     {id:'params', label:'Paramètres', icon:iconGear()},
   ];
+
   return `
-  <div class="topnav">
-    <div class="brand">${iconMountain()}<span>Les 8 Valaisans</span></div>
-    <div class="navtabs">
-      ${tabs.map(t=>`
-        <button class="navtab ${state.view===t.id?'active':''}" data-nav="${t.id}">
-          ${t.icon}<span class="lbl">${t.label}</span>
-        </button>`).join('')}
+    <div class="app-header">
+
+      <button
+        class="menu-button"
+        id="menuButton"
+        aria-label="Ouvrir le menu">
+
+        <svg viewBox="0 0 24 24" fill="none">
+          <path
+            d="M4 6h16M4 12h16M4 18h16"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"/>
+        </svg>
+
+      </button>
+
+      <div class="header-brand">
+        ${iconMountain()}
+        <span>Les 8 Valaisans</span>
+      </div>
+
     </div>
-  </div>`;
+
+    <div
+      class="sidebar-overlay ${state.menuOpen ? 'open' : ''}"
+      id="sidebarOverlay">
+    </div>
+
+    <aside class="sidebar ${state.menuOpen ? 'open' : ''}">
+
+      <div class="sidebar-header">
+        ${iconMountain()}
+        <span style="margin-left:8px;">Les 8 Valaisans</span>
+      </div>
+
+      <div class="sidebar-nav">
+
+        ${tabs.map(t=>`
+          <button
+            class="sidebar-item ${state.view===t.id ? 'active' : ''}"
+            data-nav="${t.id}">
+            ${t.icon}
+            <span>${t.label}</span>
+          </button>
+        `).join('')}
+
+      </div>
+
+    </aside>
+  `;
 }
 
 function viewHtml(){
@@ -1840,6 +1988,22 @@ function toggleDoneStatus(id){
 
 /* ---------- 8. ÉVÉNEMENTS ---------- */
 function bindEvents(){
+  const menuButton = document.getElementById('menuButton');
+  const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+  if(menuButton){
+    menuButton.onclick = () => {
+      state.menuOpen = !state.menuOpen;
+      render();
+    };
+  }
+
+  if(sidebarOverlay){
+    sidebarOverlay.onclick = () => {
+      state.menuOpen = false;
+      render();
+    };
+  }
   document.querySelectorAll('[data-auth-view]').forEach(el=>{
     el.onclick = () => {
       state.authView = el.dataset.authView;
@@ -1902,6 +2066,7 @@ function bindEvents(){
       state.view = el.dataset.nav;
       if(state.view === 'regions'){ state.nav = {region:null, lieu:null, secteur:null}; }
       state.confirmReset = false;
+      state.menuOpen = false;
       render();
     };
   });
