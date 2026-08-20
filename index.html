@@ -367,6 +367,155 @@ body{
 .stat.gray .num{color:var(--gray);}
 .stat.blue .num{color:var(--title);}
 
+/* ---- Dashboard header ---- */
+
+.dashboard-header{
+  margin:8px 0 20px;
+}
+
+.dashboard-header h1{
+  margin:0;
+  font-size:28px;
+  font-weight:800;
+}
+
+.dashboard-header p{
+  margin:6px 0 0;
+  color:var(--text-dim);
+  font-size:13px;
+}
+
+
+/* ---- Dashboard filters ---- */
+
+.filters-toolbar{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-bottom:14px;
+}
+
+.filters-button{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  padding:8px 12px;
+  border:1px solid var(--border);
+  border-radius:9px;
+  background:var(--card);
+  color:var(--text);
+  font:inherit;
+  font-size:12.5px;
+  font-weight:700;
+  cursor:pointer;
+}
+
+.filters-button:hover{
+  border-color:var(--accent);
+}
+
+.filters-button svg{
+  width:16px;
+  height:16px;
+}
+
+.filters-count{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-width:19px;
+  height:19px;
+  padding:0 5px;
+  border-radius:10px;
+  background:var(--accent);
+  color:white;
+  font-size:10px;
+}
+
+.filter-chips{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+}
+
+.filter-chip{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  border:1px solid var(--border);
+  background:var(--card-alt);
+  color:var(--text-dim);
+  border-radius:20px;
+  padding:6px 9px;
+  font-size:11.5px;
+  cursor:pointer;
+}
+
+.filter-chip:hover{
+  color:var(--text);
+  border-color:var(--accent);
+}
+
+.filter-chip span{
+  font-size:14px;
+  line-height:1;
+}
+
+.filters-panel{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:16px 18px;
+  margin-bottom:16px;
+}
+
+.filters-panel-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:16px;
+  font-weight:700;
+  font-size:13px;
+}
+
+.filters-close{
+  background:none;
+  border:0;
+  color:var(--text-dim);
+  font-size:20px;
+  cursor:pointer;
+}
+
+.filters-close:hover{
+  color:var(--text);
+}
+
+.filter-field{
+  margin-bottom:18px;
+}
+
+.filter-field > label{
+  display:block;
+  color:var(--text-dim);
+  font-size:11px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+  margin-bottom:8px;
+}
+
+.filter-field input[type="text"]{
+  width:100%;
+}
+
+.filters-options{
+  display:flex;
+  gap:22px;
+  flex-wrap:wrap;
+  padding-top:4px;
+}
+
 /* ---- Dashboard stats cards ---- */
 
 .stats-grid-wrap{
@@ -377,7 +526,8 @@ body{
   display:grid;
   grid-template-columns:repeat(5,minmax(0,1fr));
   gap:14px;
-  margin-top:16px;
+  margin-top:0;
+  margin-bottom:16px;
 }
 
 .stats-grid.two-cols{
@@ -950,6 +1100,7 @@ const state = {
   user: {firstName: 'Samuel'},
   menuOpen: false,
   authView: 'login',             // login | signup | forgot
+  filtersOpen: false,
   view: 'accueil',               // accueil | regions | todo | params
   nav: { region:null, lieu:null, secteur:null },
   filters: {
@@ -1051,7 +1202,14 @@ function todayISO(){
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
 
-  return `${day}-${month}-${year}`;
+  return `${year}-${month}-${day}`;
+}
+function formatDateShort(isoDate){ //Changement de format pour affichage : 2024-06-15 -> 15/06/24
+  if(!isoDate) return '—';
+
+  const [year, month, day] = isoDate.split('-');
+
+  return `${day}/${month}/${year.slice(-2)}`;
 }
 function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1127,6 +1285,70 @@ function dashboardStatCard({title, value, sub, tone, iconType}){
       </div>
     </div>
   `;
+}
+
+function activeFilterCount(){
+  let count = 0;
+
+  if(state.filters.search.trim()) count++;
+
+  if(
+    state.filters.gradeMin !== GRADE_ORDER[0] ||
+    state.filters.gradeMax !== GRADE_ORDER[GRADE_ORDER.length - 1]
+  ){
+    count++;
+  }
+
+  if(!state.prefs.includeVariants) count++;
+
+  if(state.prefs.includeNR) count++;
+
+  return count;
+}
+
+function filterChipsHtml(){
+  const chips = [];
+
+  if(state.filters.search.trim()){
+    chips.push(`
+      <button class="filter-chip" data-clear-filter="search">
+        “${escapeHtml(state.filters.search)}”
+        <span>×</span>
+      </button>
+    `);
+  }
+
+  if(
+    state.filters.gradeMin !== GRADE_ORDER[0] ||
+    state.filters.gradeMax !== GRADE_ORDER[GRADE_ORDER.length - 1]
+  ){
+    chips.push(`
+      <button class="filter-chip" data-clear-filter="grade">
+        ${escapeHtml(state.filters.gradeMin)} → ${escapeHtml(state.filters.gradeMax)}
+        <span>×</span>
+      </button>
+    `);
+  }
+
+  if(!state.prefs.includeVariants){
+    chips.push(`
+      <button class="filter-chip" data-clear-filter="variants">
+        Sans variantes
+        <span>×</span>
+      </button>
+    `);
+  }
+
+  if(state.prefs.includeNR){
+    chips.push(`
+      <button class="filter-chip" data-clear-filter="nr">
+        NR inclus
+        <span>×</span>
+      </button>
+    `);
+  }
+
+  return chips.join('');
 }
 
 function pbarHtml(stats){
@@ -1473,64 +1695,118 @@ function viewHtml(){
 function accueilHtml(){
   const routes = scopedRoutes();
   const stats = computeStats(routes);
+  const filterCount = activeFilterCount();
 
   return `
-      <div class="dashboard-header">
-        <h1>Bonjour ${escapeHtml(state.user.firstName)} !</h1>
-        <p>Voici un aperçu de ta progression</p>
+    <div class="dashboard-header">
+      <h1>Bonjour ${escapeHtml(state.user.firstName)} !</h1>
+      <p>Voici un aperçu de ta progression</p>
+    </div>
+    <div class="filters-toolbar">
+
+      <button class="filters-button" id="filtersButton">
+        ${iconGear()}
+        <span>Filtres</span>
+
+        ${filterCount > 0 ? `
+          <span class="filters-count">${filterCount}</span>
+        ` : ''}
+      </button>
+
+      <div class="filter-chips">
+        ${filterChipsHtml()}
       </div>
 
-      <div class="card">
-        <div class="card-title"><span class="dot"></span>Accueil</div>
-      <div class="filter-bar">
-        <input type="text" id="searchInput" placeholder="Rechercher une voie, un lieu, un secteur…" value="${escapeHtml(state.filters.search)}">
-      </div>
-      <div style="margin-bottom:14px;">
-        ${gradeSliderHtml()}
-      </div>
-        <div class="stats-grid-wrap">
-          <div class="stats-grid">
-            ${dashboardStatCard({
-              title:'Voies réalisées',
-              value:stats.done,
-              sub:`sur ${stats.total}`,
-              tone:'done',
-              iconType:'done'
-            })}
+    </div>
 
-            ${dashboardStatCard({
-              title:'À faire',
-              value:stats.todo,
-              sub:`sur ${stats.total}`,
-              tone:'todo',
-              iconType:'todo'
-            })}
+    ${state.filtersOpen ? `
+      <div class="filters-panel">
 
-            ${dashboardStatCard({
-              title:'Restantes',
-              value:stats.other,
-              sub:`sur ${stats.total}`,
-              tone:'other',
-              iconType:'other'
-            })}
-
-            ${dashboardStatCard({
-              title:'Voies filtrées',
-              value:stats.total,
-              sub:'dans la sélection',
-              tone:'total',
-              iconType:'total'
-            })}
-
-            ${dashboardStatCard({
-              title:'Progression',
-              value:`${stats.pct}%`,
-              sub:`${stats.done} sur ${stats.total}`,
-              tone:'progress',
-              iconType:'progress'
-            })}
-          </div>
+        <div class="filters-panel-header">
+          <span>Filtres</span>
+          <button id="closeFilters" class="filters-close">×</button>
         </div>
+
+        <div class="filter-field">
+          <label>Recherche</label>
+
+          <input
+            type="text"
+            id="searchInput"
+            placeholder="Rechercher une voie, un lieu, un secteur…"
+            value="${escapeHtml(state.filters.search)}">
+        </div>
+
+        <div class="filter-field">
+          <label>Cotation</label>
+          ${gradeSliderHtml()}
+        </div>
+
+        <div class="filters-options">
+
+          <label class="toggle" id="toggleVariants">
+            <div class="switch ${state.prefs.includeVariants?'on':''}">
+              <div class="knob"></div>
+            </div>
+            Inclure les variantes
+          </label>
+
+          <label class="toggle" id="toggleNR">
+            <div class="switch ${state.prefs.includeNR?'on':''}">
+              <div class="knob"></div>
+            </div>
+            Inclure les NR
+          </label>
+
+        </div>
+
+      </div>
+    ` : ''}
+
+    <div class="stats-grid-wrap">
+      <div class="stats-grid">
+
+        ${dashboardStatCard({
+          title:'Voies réalisées',
+          value:stats.done,
+          sub:`sur ${stats.total}`,
+          tone:'done',
+          iconType:'done'
+        })}
+
+        ${dashboardStatCard({
+          title:'À faire',
+          value:stats.todo,
+          sub:`sur ${stats.total}`,
+          tone:'todo',
+          iconType:'todo'
+        })}
+
+        ${dashboardStatCard({
+          title:'Restantes',
+          value:stats.other,
+          sub:`sur ${stats.total}`,
+          tone:'other',
+          iconType:'other'
+        })}
+
+        ${dashboardStatCard({
+          title:'Voies filtrées',
+          value:stats.total,
+          sub:'dans la sélection',
+          tone:'total',
+          iconType:'total'
+        })}
+
+        ${dashboardStatCard({
+          title:'Progression',
+          value:`${stats.pct}%`,
+          sub:`${stats.done} sur ${stats.total}`,
+          tone:'progress',
+          iconType:'progress'
+        })}
+
+      </div>
     </div>
 
     <div class="grid cols-2">
@@ -1544,16 +1820,6 @@ function accueilHtml(){
       </div>
     </div>
 
-    <div class="card">
-      <label class="toggle" id="toggleVariants" style="margin-bottom:12px;">
-        <div class="switch ${state.prefs.includeVariants?'on':''}"><div class="knob"></div></div>
-        Inclure les variantes
-      </label>
-      <label class="toggle" id="toggleNR">
-        <div class="switch ${state.prefs.includeNR?'on':''}"><div class="knob"></div></div>
-        Inclure les NR (Not Rated)
-      </label>
-    </div>
   `;
 }
 
@@ -1988,7 +2254,25 @@ function toggleDoneStatus(id){
 
 /* ---------- 8. ÉVÉNEMENTS ---------- */
 function bindEvents(){
-  const menuButton = document.getElementById('menuButton');
+  const filtersButton = document.getElementById('filtersButton'); //Menu Filtres
+
+  if(filtersButton){
+    filtersButton.onclick = () => {
+      state.filtersOpen = !state.filtersOpen;
+      render();
+    };
+  }
+
+  const closeFilters = document.getElementById('closeFilters');
+
+  if(closeFilters){
+    closeFilters.onclick = () => {
+      state.filtersOpen = false;
+      render();
+    };
+  }
+
+  const menuButton = document.getElementById('menuButton'); //Menu burger
   const sidebarOverlay = document.getElementById('sidebarOverlay');
 
   if(menuButton){
@@ -2067,6 +2351,34 @@ function bindEvents(){
       if(state.view === 'regions'){ state.nav = {region:null, lieu:null, secteur:null}; }
       state.confirmReset = false;
       state.menuOpen = false;
+      render();
+    };
+  });
+
+  document.querySelectorAll('[data-clear-filter]').forEach(el=>{
+    el.onclick = () => {
+
+      const filter = el.dataset.clearFilter;
+
+      if(filter === 'search'){
+        state.filters.search = '';
+      }
+
+      if(filter === 'grade'){
+        state.filters.gradeMin = GRADE_ORDER[0];
+        state.filters.gradeMax = GRADE_ORDER[GRADE_ORDER.length - 1];
+      }
+
+      if(filter === 'variants'){
+        state.prefs.includeVariants = true;
+        PersonalStore.setPref('includeVariants', true);
+      }
+
+      if(filter === 'nr'){
+        state.prefs.includeNR = false;
+        PersonalStore.setPref('includeNR', false);
+      }
+
       render();
     };
   });
