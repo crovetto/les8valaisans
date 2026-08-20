@@ -285,7 +285,7 @@ input[type="range"].grade-range:focus::-moz-range-thumb{box-shadow:0 0 0 3px var
 }
 .yaxis{display:flex;flex-direction:column;justify-content:space-between;width:26px;flex-shrink:0;text-align:right;}
 .yaxis-tick{font-size:10px;color:var(--text-faint);line-height:1;}
-.gradechart{position:relative;display:flex;align-items:flex-end;gap:6px;flex:1;padding-top:6px;}
+.gradechart{position:relative;display:flex;align-items:flex-end;gap:6px;flex:1;}
 .hgridline{position:absolute;left:0;right:0;height:1px;background:var(--border);opacity:.5;pointer-events:none;}
 .gradebar-col{flex:1;display:flex;align-items:flex-end;justify-content:center;height:100%;min-width:0;}
 .gradebar-col > .tt-wrap{
@@ -806,7 +806,13 @@ function gradeChartHtml(routes){
     return { g, ...computeStats(rs) };
   });
   const maxTotal = Math.max(1, ...byGrade.map(x=>x.total));
-  const { niceMax, ticks } = niceAxis(maxTotal);
+
+  const tickCount = 5;
+  const ticks = Array.from(
+    {length: tickCount + 1},
+    (_, i) => Math.round((maxTotal * i) / tickCount)
+  );
+
   const ticksDesc = ticks.slice().reverse();
   return `
   <div class="legend">
@@ -832,12 +838,12 @@ function gradeChartHtml(routes){
         ${ticksDesc.map(t=>`
           <div
             class="hgridline"
-            style="bottom:${(t/niceMax*100).toFixed(2)}%">
+            style="bottom:${(t/maxTotal*100).toFixed(2)}%">
           </div>
         `).join('')}
 
         ${byGrade.map(x=>{
-          const barH = (x.total / niceMax) * 100;
+          const barH = (x.total / maxTotal) * 100;
           const dH = x.total ? (x.done / x.total) * 100 : 0;
           const tH = x.total ? (x.todo / x.total) * 100 : 0;
           const oH = x.total ? (x.other / x.total) * 100 : 0;
