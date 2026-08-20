@@ -1100,7 +1100,7 @@ const PersonalStore = (function(){
     return Object.assign(
       {
         includeVariants:true,
-        includeNR:false,
+        includeNR:true,
         theme:'system'
       },
       safeParse(localStorage.getItem(KEY_PREFS), {})
@@ -1410,7 +1410,7 @@ function activeFilterCount(){
 
   if(!state.prefs.includeVariants) count++;
 
-  if(state.prefs.includeNR) count++;
+  if(!state.prefs.includeNR) count++;
 
   return count;
 }
@@ -1448,10 +1448,10 @@ function filterChipsHtml(){
     `);
   }
 
-  if(state.prefs.includeNR){
+  if(!state.prefs.includeNR){
     chips.push(`
       <button class="filter-chip" data-clear-filter="nr">
-        NR inclus
+        NR exclus
         <span>×</span>
       </button>
     `);
@@ -1854,17 +1854,17 @@ function accueilHtml(){
         <div class="filters-options">
 
           <label class="toggle" id="toggleVariants">
-            <div class="switch ${state.prefs.includeVariants?'on':''}">
+            <div class="switch ${!state.prefs.includeVariants?'on':''}">
               <div class="knob"></div>
             </div>
-            Inclure les variantes
+            Exclure les variantes
           </label>
 
           <label class="toggle" id="toggleNR">
-            <div class="switch ${state.prefs.includeNR?'on':''}">
+            <div class="switch ${!state.prefs.includeNR?'on':''}">
               <div class="knob"></div>
             </div>
-            Inclure les NR
+            Exclure les NR
           </label>
 
         </div>
@@ -2299,23 +2299,7 @@ function paramsHtml(){
         </div>
 
       </div>
-
-    <div class="card">
-      <div class="card-title"><span class="dot"></span>Filtres par défaut</div>
-      <div class="param-row">
-        <label class="toggle" id="toggleVariantsP">
-          <div class="switch ${state.prefs.includeVariants?'on':''}"><div class="knob"></div></div>
-          Inclure les variantes
-        </label>
-        <div class="param-desc">Quand c'est désactivé, les voies marquées comme variante/connexion sont exclues des statistiques, graphiques et totaux (elles restent visibles dans les listes avec un badge "Variante").</div>
-      </div>
-      <div class="param-row">
-        <label class="toggle" id="toggleNRP">
-          <div class="switch ${state.prefs.includeNR?'on':''}"><div class="knob"></div></div>
-          Inclure les NR (Not Rated)
-        </label>
-        <div class="param-desc">Les voies non cotées ("NR") ne sont pas intégrées à l'échelle des cotations.</div>
-      </div>
+  
     </div>
     <div class="card">
       <div class="card-title"><span class="dot"></span>Données personnelles</div>
@@ -2538,8 +2522,8 @@ function bindEvents(){
       }
 
       if(filter === 'nr'){
-        state.prefs.includeNR = false;
-        PersonalStore.setPref('includeNR', false);
+        state.prefs.includeNR = true;
+        PersonalStore.setPref('includeNR', true);
       }
 
       render();
@@ -2785,22 +2769,26 @@ if(gradeSliderMin && gradeSliderMax && gradeSliderWrap){
   const statusSel = document.getElementById('statusFilterSel');
   if(statusSel) statusSel.onchange = (e)=>{ state.filters.status = e.target.value; render(); };
 
-  ['toggleVariants','toggleVariantsP'].forEach(id=>{
-    const el = document.getElementById(id);
-    if(el) el.onclick = () => {
+  // Toggle variantes / NR
+  const toggleVariants = document.getElementById('toggleVariants');
+
+  if(toggleVariants){
+    toggleVariants.onclick = () => {
       state.prefs.includeVariants = !state.prefs.includeVariants;
       PersonalStore.setPref('includeVariants', state.prefs.includeVariants);
       render();
     };
-  });
-  ['toggleNR','toggleNRP'].forEach(id=>{
-    const el = document.getElementById(id);
-    if(el) el.onclick = () => {
+  }
+
+  const toggleNR = document.getElementById('toggleNR');
+
+  if(toggleNR){
+    toggleNR.onclick = () => {
       state.prefs.includeNR = !state.prefs.includeNR;
       PersonalStore.setPref('includeNR', state.prefs.includeNR);
       render();
     };
-  });
+  }
 
   document.querySelectorAll('[data-goto-region]').forEach(el=>{
     el.onclick = () => { state.nav = {region:el.dataset.gotoRegion, lieu:null, secteur:null}; state.view='regions'; render(); };
