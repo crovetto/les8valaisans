@@ -6,26 +6,66 @@
 <title>Les 8 Valaisans</title>
 <style>
 :root{
+  --radius:14px;
+  --radius-sm:8px;
+  --grade-thumb-size:26px;
+
+  --accent:#4C8DFF;
+  --green:#34D399;
+  --yellow:#FBBF24;
+  --danger:#EF4444;
+}
+
+/* Mode sombre */
+html[data-theme="dark"]{
   --bg:#0B1220;
   --card:#141B2E;
   --card-alt:#1A2338;
   --border:#26314A;
+
   --text:#E7ECF5;
   --text-dim:#8C96AC;
   --text-faint:#5C6580;
+
   --title:#6EA8FE;
-  --accent:#4C8DFF;
-  --green:#34D399;
+
   --green-dim:#1C4A3B;
-  --yellow:#FBBF24;
   --yellow-dim:#4A3B14;
+
   --gray:#6B7686;
   --gray-dim:#232B3C;
-  --danger:#EF4444;
+
   --danger-dim:#3A1F22;
-  --radius:14px;
-  --radius-sm:8px;
-  --grade-thumb-size:26px;
+}
+
+/* Mode clair */
+
+html[data-theme="light"]{
+
+  --bg:#F5F7FA;
+  --card:#FFFFFF;
+  --card-alt:#F8FAFC;
+  --border:#DCE3EA;
+
+  --text:#17212B;
+  --text-dim:#6B7785;
+  --text-faint:#94A0AC;
+
+  --title:#2F73D9;
+  --accent:#3987FB;
+
+--green:#2E9B78;
+--green-dim:#DDF3EA;
+
+  --yellow:#EFB635;
+  --yellow-dim:#FFF4D6;
+
+  --gray:#98A6B5;
+  --gray-dim:#E3E9F0;
+
+  --danger:#C73A3A;
+  --danger-dim:#FBE7E7;
+
 }
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;}
@@ -46,20 +86,24 @@ body{
   align-items:center;
   justify-content:center;
   padding:28px 16px;
+
   background:
-    radial-gradient(circle at 50% 20%, rgba(76,141,255,.18), transparent 42%),
-    linear-gradient(rgba(11,18,32,.55), rgba(11,18,32,.88)),
+    radial-gradient(
+      circle at 50% 10%,
+      color-mix(in srgb, var(--accent) 12%, transparent),
+      transparent 45%
+    ),
     var(--bg);
 }
 
 .auth-card{
   width:100%;
   max-width:390px;
-  background:rgba(20,27,46,.96);
+  background:var(--card);
   border:1px solid var(--border);
   border-radius:20px;
   padding:34px 32px 28px;
-  box-shadow:0 24px 70px rgba(0,0,0,.45);
+  box-shadow:0 24px 70px rgba(0,0,0,.12);
   text-align:center;
 }
 
@@ -120,7 +164,7 @@ body{
 .auth-form input:focus{
   outline:none;
   border-color:var(--accent);
-  box-shadow:0 0 0 2px rgba(76,141,255,.15);
+  box-shadow:0 0 0 2px color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
 .auth-primary,
@@ -142,7 +186,7 @@ body{
 }
 
 .auth-primary:hover{
-  filter:brightness(1.08);
+  filter:brightness(.94);
 }
 
 .auth-link{
@@ -621,8 +665,20 @@ body{
 .btn.active.status-none{background:var(--card-alt);color:var(--text);border-color:var(--text-faint);}
 .btn.active.status-todo{background:var(--yellow-dim);color:var(--yellow);border-color:var(--yellow);}
 .btn.active.status-done{background:var(--green-dim);color:var(--green);border-color:var(--green);}
-.btn.danger{background:var(--danger-dim);color:#FCA5A5;border-color:var(--danger);}
-.btn.danger:hover{background:var(--danger);color:#fff;}
+.btn.danger{
+  background:var(--danger-dim);
+  color:var(--danger);
+  border-color:var(--danger);
+}
+
+html[data-theme="dark"] .btn.danger{
+  color:#FCA5A5;
+}
+
+.btn.danger:hover{
+  background:var(--danger);
+  color:#fff;
+}
 .btn-row{display:flex;gap:8px;flex-wrap:wrap;}
 
 .toggle{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text);cursor:pointer;user-select:none;}
@@ -644,8 +700,12 @@ select{
   background:var(--card-alt);border:1px solid var(--border);color:var(--text);
   border-radius:var(--radius-sm);padding:8px 10px;font-size:13px;font-family:inherit;
 }
-input[type="date"]{
+html[data-theme="dark"] input[type="date"]{
   color-scheme:dark;
+}
+
+html[data-theme="light"] input[type="date"]{
+  color-scheme:light;
 }
 
 input[type="text"]:focus,
@@ -970,6 +1030,35 @@ input[type="range"].grade-range:focus::-moz-range-thumb{box-shadow:0 0 0 3px var
   .navtab span.lbl{display:none;}
 }
 
+.theme-options{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.theme-option{
+  border:1px solid var(--border);
+  background:var(--card-alt);
+  color:var(--text-dim);
+  border-radius:9px;
+  padding:8px 14px;
+  font:inherit;
+  font-size:12.5px;
+  font-weight:600;
+  cursor:pointer;
+}
+
+.theme-option:hover{
+  border-color:var(--accent);
+  color:var(--text);
+}
+
+.theme-option.active{
+  background:var(--accent);
+  border-color:var(--accent);
+  color:white;
+}
+
 </style>
 </head>
 <body>
@@ -1008,7 +1097,14 @@ const PersonalStore = (function(){
     localStorage.setItem(KEY_DATA, JSON.stringify(data));
   }
   function readPrefs(){
-    return Object.assign({ includeVariants:true, includeNR:false }, safeParse(localStorage.getItem(KEY_PREFS), {}));
+    return Object.assign(
+      {
+        includeVariants:true,
+        includeNR:false,
+        theme:'system'
+      },
+      safeParse(localStorage.getItem(KEY_PREFS), {})
+    );
   }
   function writePrefs(prefs){
     localStorage.setItem(KEY_PREFS, JSON.stringify(prefs));
@@ -1210,6 +1306,19 @@ function formatDateShort(isoDate){ //Changement de format pour affichage : 2024-
   const [year, month, day] = isoDate.split('-');
 
   return `${day}/${month}/${year.slice(-2)}`;
+}
+function applyTheme(){ //Jour / Nuit / Système
+  const preference = state.prefs.theme || 'system';
+
+  let resolvedTheme = preference;
+
+  if(preference === 'system'){
+    resolvedTheme = window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'dark'
+      : 'light';
+  }
+
+  document.documentElement.dataset.theme = resolvedTheme;
 }
 function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1455,7 +1564,7 @@ function gradeSliderHtml(){
 /* ---------- 6. RENDU ---------- */
 function render(){
   const root = document.getElementById('app');
-
+  applyTheme();
   if(!state.isAuthenticated){
     root.innerHTML = authHtml();
   } else {
@@ -2151,6 +2260,47 @@ function todoHtml(){
 function paramsHtml(){
   return `
     <div class="card">
+
+      <div class="card-title">
+        <span class="dot"></span>
+        Paramètres
+      </div>
+
+      <div class="param-row">
+
+        <div style="font-weight:600;margin-bottom:4px;">
+          Apparence
+        </div>
+
+        <div class="param-desc" style="margin-bottom:12px;">
+          Choisis l'apparence de l'application.
+        </div>
+
+        <div class="theme-options">
+
+          <button
+            class="theme-option ${state.prefs.theme === 'system' ? 'active' : ''}"
+            data-theme-choice="system">
+            Système
+          </button>
+
+          <button
+            class="theme-option ${state.prefs.theme === 'light' ? 'active' : ''}"
+            data-theme-choice="light">
+            Clair
+          </button>
+
+          <button
+            class="theme-option ${state.prefs.theme === 'dark' ? 'active' : ''}"
+            data-theme-choice="dark">
+            Sombre
+          </button>
+
+        </div>
+
+      </div>
+
+    <div class="card">
       <div class="card-title"><span class="dot"></span>Filtres par défaut</div>
       <div class="param-row">
         <label class="toggle" id="toggleVariantsP">
@@ -2291,6 +2441,19 @@ function bindEvents(){
   document.querySelectorAll('[data-auth-view]').forEach(el=>{
     el.onclick = () => {
       state.authView = el.dataset.authView;
+      render();
+    };
+  });
+
+  document.querySelectorAll('[data-theme-choice]').forEach(el=>{ // Changement de thème
+    el.onclick = () => {
+      state.prefs.theme = el.dataset.themeChoice;
+
+      PersonalStore.setPref(
+        'theme',
+        state.prefs.theme
+      );
+
       render();
     };
   });
@@ -2707,6 +2870,11 @@ if(gradeSliderMin && gradeSliderMax && gradeSliderWrap){
 
 render();
 window.addEventListener('resize', updateStatsGridLayout);
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+  if(state.prefs.theme === 'system'){
+    applyTheme();
+  }
+});
 
 </script>
 </body>
