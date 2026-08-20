@@ -25,6 +25,7 @@
   --danger-dim:#3A1F22;
   --radius:14px;
   --radius-sm:8px;
+  --grade-thumb-size:26px;
 }
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;}
@@ -72,7 +73,7 @@ body{
   border-radius:var(--radius);
   padding:18px;
 }
-.card + .card{margin-top:16px;}
+.app > .card + .card{margin-top:16px;}
 .card-title{
   display:flex;align-items:center;gap:7px;
   color:var(--title);font-size:13px;font-weight:700;
@@ -81,10 +82,14 @@ body{
 }
 .card-title .dot{width:5px;height:5px;border-radius:50%;background:var(--title);}
 
+
 /* ---- Stat cards ---- */
 .stat-row{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
 @media(min-width:560px){.stat-row{grid-template-columns:repeat(5,1fr);}}
-.stat{padding:4px 2px;}
+.stat{
+  padding:4px 2px;
+  text-align:center;
+}
 .stat .num{font-size:26px;font-weight:700;line-height:1.1;}
 .stat .lbl{font-size:11.5px;color:var(--text-dim);margin-top:3px;}
 .stat.green .num{color:var(--green);}
@@ -134,21 +139,68 @@ input[type="text"]:focus, select:focus{outline:1px solid var(--accent);}
 }
 .grade-slider-wrap{position:relative;height:40px;}
 .grade-slider-rail{
-  position:absolute;left:0;right:0;top:50%;height:4px;border-radius:2px;
-  background:var(--gray-dim);transform:translateY(-50%);
+  position:absolute;
+  left:calc(var(--grade-thumb-size) / 2);
+  right:calc(var(--grade-thumb-size) / 2);
+  top:50%;
+  height:4px;
+  border-radius:2px;
+  background:var(--gray-dim);
+  transform:translateY(-50%);
 }
+.grade-slider-fill-zone{
+  position:absolute;
+  left:calc(var(--grade-thumb-size) / 2);
+  right:calc(var(--grade-thumb-size) / 2);
+  top:50%;
+  height:4px;
+  transform:translateY(-50%);
+  pointer-events:none;
+}
+
 .grade-slider-fill{
-  position:absolute;top:50%;height:4px;border-radius:2px;
-  background:var(--accent);transform:translateY(-50%);
+  position:absolute;
+  top:0;
+  height:4px;
+  border-radius:2px;
+  background:var(--accent);
 }
 .grade-slider-ticks{
-  position:absolute;left:0;right:0;top:50%;height:4px;transform:translateY(-50%);
-  display:flex;justify-content:space-between;align-items:center;pointer-events:none;padding:0 1px;
+  position:absolute;
+  left:calc(var(--grade-thumb-size) / 2);
+  right:calc(var(--grade-thumb-size) / 2);
+  top:50%;
+  height:4px;
+  transform:translateY(-50%);
+  pointer-events:none;
 }
-.grade-slider-ticks span{width:2px;height:8px;border-radius:1px;background:var(--border);}
+
+.grade-slider-ticks span{
+  position:absolute;
+  top:50%;
+  width:2px;
+  height:8px;
+  border-radius:1px;
+  background:var(--border);
+  transform:translate(-50%, -50%);
+}
 .grade-slider-labels{
-  display:flex;justify-content:space-between;font-size:10.5px;color:var(--text-faint);margin-top:6px;
+  position:relative;
+  height:18px;
+  margin-top:7px;
+  margin-left:calc(var(--grade-thumb-size) / 2);
+  margin-right:calc(var(--grade-thumb-size) / 2);
+  font-size:10.5px;
+  color:var(--text-faint);
 }
+
+.grade-slider-labels span{
+  position:absolute;
+  top:0;
+  transform:translateX(-50%);
+  white-space:nowrap;
+}
+
 input[type="range"].grade-range{
   position:absolute;left:0;top:7px;width:100%;height:26px;margin:0;padding:0;
   -webkit-appearance:none;appearance:none;background:transparent;pointer-events:none;
@@ -199,18 +251,69 @@ input[type="range"].grade-range:focus::-moz-range-thumb{box-shadow:0 0 0 3px var
 .legend .sw.other{background:var(--gray);}
 
 /* ---- Grade bar chart ---- */
+
+.grade-progress-card{
+  display:flex;
+  flex-direction:column;
+}
+
+.grade-chart-content{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+}
+
+.grade-chart-content .chart-with-yaxis{
+  flex:1;
+  min-height:180px;
+}
+
+.grade-chart-content .yaxis,
+.grade-chart-content .gradechart{
+  height:100%;
+}
+
 .chart-with-yaxis{display:flex;gap:8px;align-items:flex-start;}
+.yaxis-title{
+  align-self:center;
+  writing-mode:vertical-rl;
+  transform:rotate(180deg);
+  font-size:10.5px;
+  color:var(--text-faint);
+  white-space:nowrap;
+}
 .yaxis{display:flex;flex-direction:column;justify-content:space-between;width:26px;flex-shrink:0;text-align:right;}
 .yaxis-tick{font-size:10px;color:var(--text-faint);line-height:1;}
 .gradechart{position:relative;display:flex;align-items:flex-end;gap:6px;flex:1;padding-top:6px;}
 .hgridline{position:absolute;left:0;right:0;height:1px;background:var(--border);opacity:.5;pointer-events:none;}
-.gradebar-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0;}
-.gradebar{width:100%;max-width:26px;display:flex;flex-direction:column-reverse;border-radius:4px 4px 0 0;overflow:hidden;background:var(--gray-dim);}
-.gradebar .seg{width:100%;}
+.gradebar-col{flex:1;display:flex;align-items:flex-end;justify-content:center;height:100%;min-width:0;}
+.gradebar-col > .tt-wrap{
+  width:26px;
+  height:100%;
+  display:flex;
+  align-items:flex-end;
+}
+.gradebar{width:100%;max-width:26px;display:flex;flex-direction:column;justify-content:flex-end;border-radius:4px 4px 0 0;overflow:hidden;background:var(--gray-dim);}
+.gradebar .seg{width:100%;flex-shrink:0;}
 .gradebar .seg-done{background:var(--green);}
 .gradebar .seg-todo{background:var(--yellow);}
 .gradebar .seg-other{background:var(--gray);}
-.gradebar-lbl{font-size:10px;color:var(--text-dim);margin-top:6px;white-space:nowrap;}
+.gradebar-label-row{
+  display:flex;
+  gap:6px;
+  margin-left:34px;
+  padding-top:6px;
+}
+
+.gradebar-lbl{
+  flex:1;
+  min-width:0;
+  text-align:center;
+  font-size:10px;
+  color:var(--text-dim);
+  white-space:nowrap;
+}
 .axis-caption{font-size:10.5px;color:var(--text-faint);text-align:center;margin-top:8px;}
 
 /* ---- Tooltips (survol des graphiques) ---- */
@@ -359,6 +462,7 @@ const ROUTES = [{"id": "R0001", "region": "Valais central", "lieu": "Rawyl", "se
 const GRADE_ORDER = ["8a","8a+","8b","8b+","8c","8c+","9a","9a+","9b"];
 function isRatedGrade(cotation){ return GRADE_ORDER.includes(cotation); }
 function gradeIndex(cotation){ return GRADE_ORDER.indexOf(cotation); }
+function gradePositionPct(index){const lastIdx = GRADE_ORDER.length - 1; return lastIdx === 0 ? 0 : (index / lastIdx) * 100;}
 
 /* ---------- 2. STORE DES DONNÉES PERSONNELLES ----------
    Séparé de l'affichage : aujourd'hui backé par localStorage,
@@ -554,20 +658,61 @@ function gradeSliderHtml(){
   const lastIdx = GRADE_ORDER.length - 1;
   const minIdx = gradeIndex(state.filters.gradeMin);
   const maxIdx = gradeIndex(state.filters.gradeMax);
-  const fillLeft = (minIdx / lastIdx * 100).toFixed(2);
-  const fillWidth = ((maxIdx - minIdx) / lastIdx * 100).toFixed(2);
+
+  const fillLeft = gradePositionPct(minIdx);
+  const fillRight = gradePositionPct(maxIdx);
+  const fillWidth = fillRight - fillLeft;
+
   return `
     <div class="grade-slider">
-      <div class="grade-slider-readout">${escapeHtml(state.filters.gradeMin)} → ${escapeHtml(state.filters.gradeMax)}</div>
+      <div class="grade-slider-readout" id="gradeSliderReadout">
+        ${escapeHtml(state.filters.gradeMin)} → ${escapeHtml(state.filters.gradeMax)}
+      </div>
+
       <div class="grade-slider-wrap">
         <div class="grade-slider-rail"></div>
-        <div class="grade-slider-fill" style="left:${fillLeft}%;width:${fillWidth}%;"></div>
-        <div class="grade-slider-ticks">${GRADE_ORDER.map(()=>`<span></span>`).join('')}</div>
-        <input type="range" class="grade-range" id="gradeSliderMin" min="0" max="${lastIdx}" step="1" value="${minIdx}" aria-label="Cotation minimale">
-        <input type="range" class="grade-range" id="gradeSliderMax" min="0" max="${lastIdx}" step="1" value="${maxIdx}" aria-label="Cotation maximale">
+
+        <div class="grade-slider-fill-zone">
+          <div
+            class="grade-slider-fill"
+            id="gradeSliderFill"
+            style="left:${fillLeft}%;width:${fillWidth}%;">
+          </div>
+        </div>
+
+        <div class="grade-slider-ticks">
+          ${GRADE_ORDER.map((g,i)=>`
+          <span style="left:${gradePositionPct(i)}%"></span>
+          `).join('')}
+        </div>
+
+        <input
+          type="range"
+          class="grade-range"
+          id="gradeSliderMin"
+          min="0"
+          max="${lastIdx}"
+          step="0.01"
+          value="${minIdx}"
+          aria-label="Cotation minimale">
+
+        <input
+          type="range"
+          class="grade-range"
+          id="gradeSliderMax"
+          min="0"
+          max="${lastIdx}"
+          step="0.01"
+          value="${maxIdx}"
+          aria-label="Cotation maximale">
       </div>
+
       <div class="grade-slider-labels">
-        <span>${GRADE_ORDER[0]}</span><span>${GRADE_ORDER[lastIdx]}</span>
+        ${GRADE_ORDER.map((g,i)=>`
+        <span style="left:${gradePositionPct(i)}%">
+        ${g}
+        </span>
+        `).join('')}
       </div>
     </div>`;
 }
@@ -620,16 +765,17 @@ function accueilHtml(){
       <div style="margin-bottom:14px;">
         ${gradeSliderHtml()}
       </div>
-        <div class="stat blue"><div class="num">${stats.total}</div><div class="lbl">Voies totales</div></div>
-        <div class="stat green"><div class="num">${stats.done}</div><div class="lbl">Faites</div></div>
-        <div class="stat yellow"><div class="num">${stats.todo}</div><div class="lbl">À faire</div></div>
-        <div class="stat gray"><div class="num">${stats.other}</div><div class="lbl">Restantes</div></div>
-        <div class="stat blue"><div class="num">${stats.pct}%</div><div class="lbl">Réalisées</div></div>
-      </div>
+        <div class="stat-row">
+          <div class="stat blue"><div class="num">${stats.total}</div><div class="lbl">Voies totales</div></div>
+          <div class="stat green"><div class="num">${stats.done}</div><div class="lbl">Faites</div></div>
+          <div class="stat yellow"><div class="num">${stats.todo}</div><div class="lbl">À faire</div></div>
+          <div class="stat gray"><div class="num">${stats.other}</div><div class="lbl">Restantes</div></div>
+          <div class="stat blue"><div class="num">${stats.pct}%</div><div class="lbl">Réalisées</div></div>
+        </div>
     </div>
 
     <div class="grid cols-2">
-      <div class="card">
+      <div class="card grade-progress-card">
         <div class="card-title"><span class="dot"></span>Progression par difficulté</div>
         ${gradeChartHtml(routes)}
       </div>
@@ -661,33 +807,50 @@ function gradeChartHtml(routes){
   });
   const maxTotal = Math.max(1, ...byGrade.map(x=>x.total));
   const { niceMax, ticks } = niceAxis(maxTotal);
-  const CH = 150; // hauteur du plan de graphe en px
   const ticksDesc = ticks.slice().reverse();
   return `
-    <div class="legend">
-      <span><i class="sw done"></i>Faites</span>
-      <span><i class="sw todo"></i>À faire</span>
-      <span><i class="sw other"></i>Restantes</span>
-    </div>
+  <div class="legend">
+    <span><i class="sw done"></i>Faites</span>
+    <span><i class="sw todo"></i>À faire</span>
+    <span><i class="sw other"></i>Restantes</span>
+  </div>
+
+  <div class="grade-chart-content">
+
     <div class="chart-with-yaxis">
-      <div class="yaxis" style="height:${CH}px;">
-        ${ticksDesc.map(t=>`<div class="yaxis-tick">${t}</div>`).join('')}
+
+      <div class="yaxis-title">Nombre de voies</div>
+
+      <div class="yaxis">
+        ${ticksDesc.map(t=>`
+          <div class="yaxis-tick">${t}</div>
+        `).join('')}
       </div>
-      <div class="gradechart" style="height:${CH}px;">
-        ${ticksDesc.map((t,i)=>`<div class="hgridline" style="bottom:${(t/niceMax*100).toFixed(2)}%"></div>`).join('')}
+
+      <div class="gradechart">
+
+        ${ticksDesc.map(t=>`
+          <div
+            class="hgridline"
+            style="bottom:${(t/niceMax*100).toFixed(2)}%">
+          </div>
+        `).join('')}
+
         ${byGrade.map(x=>{
-          const h = Math.max(x.total>0?2:0, Math.round((x.total/niceMax)*CH));
-          const dH = x.total ? (x.done/x.total*100) : 0;
-          const tH = x.total ? (x.todo/x.total*100) : 0;
-          const oH = x.total ? (x.other/x.total*100) : 0;
+          const barH = (x.total / niceMax) * 100;
+          const dH = x.total ? (x.done / x.total) * 100 : 0;
+          const tH = x.total ? (x.todo / x.total) * 100 : 0;
+          const oH = x.total ? (x.other / x.total) * 100 : 0;
+
           return `
             <div class="gradebar-col">
               <div class="tt-wrap">
-                <div class="gradebar" style="height:${h}px;">
-                  <div class="seg seg-done" style="height:${dH}%"></div>
-                  <div class="seg seg-todo" style="height:${tH}%"></div>
+                <div class="gradebar" style="height:${barH}%;">
                   <div class="seg seg-other" style="height:${oH}%"></div>
+                  <div class="seg seg-todo" style="height:${tH}%"></div>
+                  <div class="seg seg-done" style="height:${dH}%"></div>
                 </div>
+
                 <div class="tooltip">
                   <b>${escapeHtml(x.g)}</b>
                   <div>Faites : ${x.done}</div>
@@ -696,13 +859,22 @@ function gradeChartHtml(routes){
                   <div>Total : ${x.total}</div>
                 </div>
               </div>
-              <div class="gradebar-lbl">${x.g}</div>
             </div>`;
         }).join('')}
+
       </div>
     </div>
-    <div class="axis-caption">Nombre de voies</div>
-  `;
+
+    <div class="gradebar-label-row">
+      ${byGrade.map(x=>`
+        <div class="gradebar-lbl">${escapeHtml(x.g)}</div>
+      `).join('')}
+    </div>
+
+    <div class="axis-caption">Cotation des voies</div>
+
+  </div>
+`;
 }
 
 function regionChartHtml(routes){
@@ -880,7 +1052,7 @@ function routeRowHtml(r){
   const dotContent = p.status === 'done' ? '✓' : '';
   return `
     <div class="route-row" data-open-route="${r.id}">
-      <div class="status-dot ${dotClass}" data-cycle-status="${r.id}">${dotContent}</div>
+      <div class="status-dot ${dotClass}" data-toggle-done="${r.id}">${dotContent}</div>
       <div class="route-main">
         <div class="route-name">${escapeHtml(r.voie)}</div>
         <div class="route-sub">
@@ -1029,19 +1201,19 @@ function iconCheck(){ return `<svg width="15" height="15" viewBox="0 0 24 24" fi
 function iconGear(){ return `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`; }
 function iconChevron(){ return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`; }
 
-// Cycle rapide du statut au clic sur l'indicateur, sans ouvrir la modal
-function cycleStatus(id){
+// Togglerapide du statut au clic sur l'indicateur, sans ouvrir la modal
+function toggleDoneStatus(id){
   const current = PersonalStore.getRoute(id).status;
-  const next = current === 'none' ? 'todo' : (current === 'todo' ? 'done' : 'none');
+  const next = current === 'done' ? 'none' : 'done';
   PersonalStore.setStatus(id, next);
 }
 
 /* ---------- 8. ÉVÉNEMENTS ---------- */
 function bindEvents(){
-  document.querySelectorAll('[data-cycle-status]').forEach(el=>{
+  document.querySelectorAll('[data-toggle-done]').forEach(el=>{
     el.onclick = (e) => {
       e.stopPropagation();
-      cycleStatus(el.dataset.cycleStatus);
+      toggleDoneStatus(el.dataset.toggleDone);
       render();
     };
   });
@@ -1068,24 +1240,209 @@ function bindEvents(){
     };
   });
 
-  const gradeSliderMin = document.getElementById('gradeSliderMin');
-  if(gradeSliderMin) gradeSliderMin.oninput = (e)=>{
-    const idx = parseInt(e.target.value, 10);
-    let maxIdx = gradeIndex(state.filters.gradeMax);
-    if(idx > maxIdx) maxIdx = idx; // les deux poignées ne se croisent jamais
-    state.filters.gradeMin = GRADE_ORDER[idx];
-    state.filters.gradeMax = GRADE_ORDER[maxIdx];
-    render();
-  };
-  const gradeSliderMax = document.getElementById('gradeSliderMax');
-  if(gradeSliderMax) gradeSliderMax.oninput = (e)=>{
-    const idx = parseInt(e.target.value, 10);
-    let minIdx = gradeIndex(state.filters.gradeMin);
-    if(idx < minIdx) minIdx = idx; // les deux poignées ne se croisent jamais
-    state.filters.gradeMax = GRADE_ORDER[idx];
+ const gradeSliderMin = document.getElementById('gradeSliderMin');
+const gradeSliderMax = document.getElementById('gradeSliderMax');
+const gradeSliderFill = document.getElementById('gradeSliderFill');
+const gradeSliderReadout = document.getElementById('gradeSliderReadout');
+const gradeSliderWrap = gradeSliderMin?.closest('.grade-slider-wrap');
+
+if(gradeSliderMin && gradeSliderMax && gradeSliderWrap){
+
+  const lastIdx = GRADE_ORDER.length - 1;
+
+  function nearestGradeIndex(value){
+    return Math.max(
+      0,
+      Math.min(lastIdx, Math.round(parseFloat(value)))
+    );
+  }
+
+  function sliderValueFromPointer(clientX){
+    const rect = gradeSliderWrap.getBoundingClientRect();
+
+    const thumbRadius = 13;
+    const usableLeft = rect.left + thumbRadius;
+    const usableRight = rect.right - thumbRadius;
+    const usableWidth = usableRight - usableLeft;
+
+    const pct = Math.max(
+      0,
+      Math.min(1, (clientX - usableLeft) / usableWidth)
+    );
+
+    return pct * lastIdx;
+  }
+
+  function updateSliderVisuals(){
+
+    const minValue = parseFloat(gradeSliderMin.value);
+    const maxValue = parseFloat(gradeSliderMax.value);
+
+    const minPct = minValue / lastIdx * 100;
+    const maxPct = maxValue / lastIdx * 100;
+
+    if(gradeSliderFill){
+      gradeSliderFill.style.left = `${minPct}%`;
+      gradeSliderFill.style.width = `${maxPct - minPct}%`;
+    }
+
+    const minGrade = GRADE_ORDER[nearestGradeIndex(minValue)];
+    const maxGrade = GRADE_ORDER[nearestGradeIndex(maxValue)];
+
+    if(gradeSliderReadout){
+      gradeSliderReadout.textContent = `${minGrade} → ${maxGrade}`;
+    }
+  }
+
+  function snapAndCommit(){
+
+    let minIdx = nearestGradeIndex(gradeSliderMin.value);
+    let maxIdx = nearestGradeIndex(gradeSliderMax.value);
+
+    if(minIdx > maxIdx){
+      minIdx = maxIdx;
+    }
+
+    gradeSliderMin.value = minIdx;
+    gradeSliderMax.value = maxIdx;
+
     state.filters.gradeMin = GRADE_ORDER[minIdx];
+    state.filters.gradeMax = GRADE_ORDER[maxIdx];
+
     render();
-  };
+  }
+
+  let overlapDrag = false;
+  let startX = 0;
+  let activeSlider = null;
+
+  gradeSliderWrap.addEventListener('pointerdown', (e)=>{
+
+    const minValue = parseFloat(gradeSliderMin.value);
+    const maxValue = parseFloat(gradeSliderMax.value);
+
+    const areOverlapping = Math.abs(minValue - maxValue) < 0.02;
+
+    if(!areOverlapping){
+      return;
+    }
+
+    const pointerValue = sliderValueFromPointer(e.clientX);
+
+    // On intercepte seulement si le clic est proche de la boule superposée
+    if(Math.abs(pointerValue - minValue) > 0.45){
+      return;
+    }
+
+    e.preventDefault();
+
+    overlapDrag = true;
+    startX = e.clientX;
+    activeSlider = null;
+
+    gradeSliderWrap.setPointerCapture(e.pointerId);
+  });
+
+  gradeSliderWrap.addEventListener('pointermove', (e)=>{
+
+    if(!overlapDrag) return;
+
+    const deltaX = e.clientX - startX;
+
+    // Petite zone morte pour éviter qu'un micro-mouvement
+    // choisisse accidentellement une direction
+    if(!activeSlider){
+
+      if(Math.abs(deltaX) < 3){
+        return;
+      }
+
+      if(deltaX < 0){
+        activeSlider = gradeSliderMin;
+      } else {
+        activeSlider = gradeSliderMax;
+      }
+    }
+
+    const newValue = sliderValueFromPointer(e.clientX);
+
+    if(activeSlider === gradeSliderMin){
+
+      const maxValue = parseFloat(gradeSliderMax.value);
+
+      gradeSliderMin.value = Math.max(
+        0,
+        Math.min(newValue, maxValue)
+      );
+
+    } else {
+
+      const minValue = parseFloat(gradeSliderMin.value);
+
+      gradeSliderMax.value = Math.min(
+        lastIdx,
+        Math.max(newValue, minValue)
+      );
+    }
+
+    updateSliderVisuals();
+  });
+
+  function finishOverlapDrag(e){
+
+    if(!overlapDrag) return;
+
+    overlapDrag = false;
+
+    if(gradeSliderWrap.hasPointerCapture(e.pointerId)){
+      gradeSliderWrap.releasePointerCapture(e.pointerId);
+    }
+
+    if(activeSlider){
+      snapAndCommit();
+    }
+
+    activeSlider = null;
+  }
+
+  gradeSliderWrap.addEventListener('pointerup', finishOverlapDrag);
+  gradeSliderWrap.addEventListener('pointercancel', finishOverlapDrag);
+
+  // Comportement normal quand les poignées ne sont pas superposées
+  gradeSliderMin.addEventListener('input', ()=>{
+
+    if(overlapDrag) return;
+
+    const maxValue = parseFloat(gradeSliderMax.value);
+
+    if(parseFloat(gradeSliderMin.value) > maxValue){
+      gradeSliderMin.value = maxValue;
+    }
+
+    updateSliderVisuals();
+  });
+
+  gradeSliderMax.addEventListener('input', ()=>{
+
+    if(overlapDrag) return;
+
+    const minValue = parseFloat(gradeSliderMin.value);
+
+    if(parseFloat(gradeSliderMax.value) < minValue){
+      gradeSliderMax.value = minValue;
+    }
+
+    updateSliderVisuals();
+  });
+
+  gradeSliderMin.addEventListener('change', ()=>{
+    if(!overlapDrag) snapAndCommit();
+  });
+
+  gradeSliderMax.addEventListener('change', ()=>{
+    if(!overlapDrag) snapAndCommit();
+  });
+}
 
   const todoRegionSel = document.getElementById('todoRegionSel');
   if(todoRegionSel) todoRegionSel.onchange = (e)=>{
