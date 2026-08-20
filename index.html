@@ -263,6 +263,100 @@ body{
 .stat.gray .num{color:var(--gray);}
 .stat.blue .num{color:var(--title);}
 
+/* ---- Dashboard stats cards ---- */
+
+.stats-grid-wrap{
+  width:100%;
+}
+
+.stats-grid{
+  display:grid;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:14px;
+  margin-top:16px;
+}
+
+.stats-grid.two-cols{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+
+
+.dashboard-stat{
+  display:grid;
+  grid-template-columns:48px minmax(0,1fr);
+  align-items:center;
+  column-gap:10px;
+  min-height:118px;
+  padding:18px;
+  border:1px solid var(--border);
+  border-radius:16px;
+  background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01)), var(--card);
+  box-shadow:0 8px 24px rgba(0,0,0,.12);
+}
+
+.dashboard-stat-text{
+  min-width:0;
+  text-align:left;
+}
+
+.dashboard-stat-title{
+  font-size:12px;
+  color:var(--text-dim);
+  margin-bottom:10px;
+  line-height:1.3;
+  white-space:nowrap;
+}
+
+.dashboard-stat-value{
+  font-size:24px;
+  font-weight:800;
+  line-height:1;
+  color:var(--text);
+  margin-bottom:8px;
+}
+
+.dashboard-stat-sub{
+  font-size:12px;
+  color:var(--text-faint);
+  line-height:1.3;
+  white-space:nowrap;
+}
+
+.dashboard-stat-icon{
+  width:48px;
+  height:48px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  opacity:.95;
+}
+
+.dashboard-stat-icon svg{
+  width:38px;
+  height:38px;
+  display:block;
+}
+
+.dashboard-stat.done .dashboard-stat-icon{
+  color:var(--green);
+}
+
+.dashboard-stat.todo .dashboard-stat-icon{
+  color:var(--yellow);
+}
+
+.dashboard-stat.other .dashboard-stat-icon{
+  color:var(--gray);
+}
+
+.dashboard-stat.total .dashboard-stat-icon{
+  color:var(--accent);
+}
+
+.dashboard-stat.progress .dashboard-stat-icon{
+  color:var(--title);
+}
+
 /* ---- Buttons / toggles ---- */
 .btn{
   border:1px solid var(--border);background:var(--card-alt);color:var(--text);
@@ -290,13 +384,23 @@ body{
 .switch.on .knob{left:18px;}
 
 /* ---- Inputs ---- */
-input[type="text"], select{
+input[type="text"],
+input[type="date"],
+select{
   background:var(--card-alt);border:1px solid var(--border);color:var(--text);
   border-radius:var(--radius-sm);padding:8px 10px;font-size:13px;font-family:inherit;
 }
-input[type="text"]:focus, select:focus{outline:1px solid var(--accent);}
+input[type="date"]{
+  color-scheme:dark;
+}
+
+input[type="text"]:focus,
+input[type="date"]:focus,
+select:focus{outline:1px solid var(--accent);}
 .filter-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;}
 .filter-bar input[type="text"]{flex:1;min-width:140px;}
+
+
 
 /* ---- Grade range slider ---- */
 .grade-slider-readout{
@@ -659,18 +763,50 @@ const PersonalStore = (function(){
   return {
     getRoute(id){
       const data = readData();
-      return data[id] || { status:'none', rating:null };
+
+      return Object.assign(
+        {
+          status:'none',
+          rating:null,
+          completedAt:null
+        },
+        data[id] || {}
+      );
     },
     setStatus(id, status){
       const data = readData();
-      const entry = data[id] || { status:'none', rating:null };
+
+      const entry = data[id] || {
+        status:'none',
+        rating:null,
+        completedAt:null
+      };
+
+      const previousStatus = entry.status;
+
       entry.status = status;
-      if(status !== 'done') entry.rating = null; // ma note supprimée si on quitte "fait"
-      if(status === 'none' && entry.rating == null){
+
+      if(status === 'done'){
+        // On attribue aujourd'hui uniquement au moment
+        // où la voie devient "faite".
+        if(previousStatus !== 'done' || !entry.completedAt){
+          entry.completedAt = todayISO();
+        }
+      } else {
+        entry.rating = null;
+        entry.completedAt = null;
+      }
+
+      if(
+        status === 'none' &&
+        entry.rating == null &&
+        entry.completedAt == null
+      ){
         delete data[id];
       } else {
         data[id] = entry;
       }
+
       writeData(data);
     },
     setRating(id, rating){
@@ -679,6 +815,17 @@ const PersonalStore = (function(){
       if(!entry || entry.status !== 'done') return; // note perso uniquement si "fait"
       entry.rating = rating;
       data[id] = entry;
+      writeData(data);
+    },
+    setCompletedAt(id, date){
+      const data = readData();
+      const entry = data[id];
+
+      if(!entry || entry.status !== 'done') return;
+
+      entry.completedAt = date || null;
+      data[id] = entry;
+
       writeData(data);
     },
     getPrefs(){ return readPrefs(); },
@@ -696,6 +843,7 @@ const PersonalStore = (function(){
 /* ---------- 3. ÉTAT DE L'APPLICATION ---------- */
 const state = {
   isAuthenticated: false,
+  user: {firstName: 'Samuel'},
   authView: 'login',             // login | signup | forgot
   view: 'accueil',               // accueil | regions | todo | params
   nav: { region:null, lieu:null, secteur:null },
@@ -792,6 +940,14 @@ function niceAxis(maxValue, targetTicks=5){
 }
 
 /* ---------- 5. HELPERS D'AFFICHAGE ---------- */
+function todayISO(){
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+
+  return `${day}-${month}-${year}`;
+}
 function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
@@ -807,6 +963,67 @@ function ratingLabel(r){
   if(!r) return '—';
   return starString(r);
 }
+function dashboardStatIcon(type){
+  if(type === 'done'){
+    return `
+      <svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
+        <path d="M8 50 L24 34 L34 42 L52 18" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="52" cy="18" r="3.5" fill="currentColor"/>
+      </svg>
+    `;
+  }
+
+  if(type === 'todo'){
+    return `
+      <svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
+        <path d="M18 12h28a4 4 0 0 1 4 4v36l-18-10-18 10V16a4 4 0 0 1 4-4Z"
+          stroke="currentColor" stroke-width="4" stroke-linejoin="round"/>
+      </svg>
+    `;
+  }
+
+  if(type === 'other'){
+    return `
+      <svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
+        <rect x="14" y="18" width="36" height="28" rx="6" fill="currentColor" opacity=".22"/>
+        <rect x="10" y="14" width="36" height="28" rx="6" stroke="currentColor" stroke-width="4"/>
+      </svg>
+    `;
+  }
+
+  if(type === 'progress'){
+    return `
+      <svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
+        <path d="M10 50h44" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+        <path d="M16 44l8-10 8 6 14-18 6 5" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    `;
+  }
+
+  return `
+    <svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
+      <path d="M12 46 L24 28 L34 38 L48 18 L56 28" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M10 50H54" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+    </svg>
+  `;
+}
+
+function dashboardStatCard({title, value, sub, tone, iconType}){
+  return `
+    <div class="dashboard-stat ${tone}">
+      <div class="dashboard-stat-icon">
+        ${dashboardStatIcon(iconType)}
+      </div>
+
+      <div class="dashboard-stat-text">
+        <div class="dashboard-stat-title">${escapeHtml(title)}</div>
+        <div class="dashboard-stat-value">${escapeHtml(String(value))}</div>
+        <div class="dashboard-stat-sub">${escapeHtml(sub)}</div>
+      </div>
+    </div>
+  `;
+}
+
 function pbarHtml(stats){
   const {total, done, todo, other} = stats;
   if(total === 0) return `<div class="pbar"></div>`;
@@ -818,6 +1035,28 @@ function pbarHtml(stats){
     <div class="seg-todo" style="width:${tW}%"></div>
     <div class="seg-other" style="width:${oW}%"></div>
   </div>`;
+}
+
+function updateStatsGridLayout(){
+  const grid = document.querySelector('.stats-grid');
+  if(!grid) return;
+
+  // On teste toujours d'abord le layout à 5 colonnes
+  grid.classList.remove('two-cols');
+
+  requestAnimationFrame(()=>{
+    const texts = grid.querySelectorAll(
+      '.dashboard-stat-title, .dashboard-stat-sub'
+    );
+
+    const hasOverflow = Array.from(texts).some(el =>
+      el.scrollWidth > el.clientWidth
+    );
+
+    if(hasOverflow){
+      grid.classList.add('two-cols');
+    }
+  });
 }
 
 // Double slider discret pour la plage de cotation (remplace les <select> min/max).
@@ -902,6 +1141,7 @@ function render(){
   }
 
   bindEvents();
+  updateStatsGridLayout();
 }
 
 function authHtml(){
@@ -1087,20 +1327,61 @@ function accueilHtml(){
   const stats = computeStats(routes);
 
   return `
-    <div class="card">
-      <div class="card-title"><span class="dot"></span>Accueil</div>
+      <div class="dashboard-header">
+        <h1>Bonjour ${escapeHtml(state.user.firstName)} !</h1>
+        <p>Voici un aperçu de ta progression</p>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span class="dot"></span>Accueil</div>
       <div class="filter-bar">
         <input type="text" id="searchInput" placeholder="Rechercher une voie, un lieu, un secteur…" value="${escapeHtml(state.filters.search)}">
       </div>
       <div style="margin-bottom:14px;">
         ${gradeSliderHtml()}
       </div>
-        <div class="stat-row">
-          <div class="stat blue"><div class="num">${stats.total}</div><div class="lbl">Voies totales</div></div>
-          <div class="stat green"><div class="num">${stats.done}</div><div class="lbl">Faites</div></div>
-          <div class="stat yellow"><div class="num">${stats.todo}</div><div class="lbl">À faire</div></div>
-          <div class="stat gray"><div class="num">${stats.other}</div><div class="lbl">Restantes</div></div>
-          <div class="stat blue"><div class="num">${stats.pct}%</div><div class="lbl">Réalisées</div></div>
+        <div class="stats-grid-wrap">
+          <div class="stats-grid">
+            ${dashboardStatCard({
+              title:'Voies réalisées',
+              value:stats.done,
+              sub:`sur ${stats.total}`,
+              tone:'done',
+              iconType:'done'
+            })}
+
+            ${dashboardStatCard({
+              title:'À faire',
+              value:stats.todo,
+              sub:`sur ${stats.total}`,
+              tone:'todo',
+              iconType:'todo'
+            })}
+
+            ${dashboardStatCard({
+              title:'Restantes',
+              value:stats.other,
+              sub:`sur ${stats.total}`,
+              tone:'other',
+              iconType:'other'
+            })}
+
+            ${dashboardStatCard({
+              title:'Voies filtrées',
+              value:stats.total,
+              sub:'dans la sélection',
+              tone:'total',
+              iconType:'total'
+            })}
+
+            ${dashboardStatCard({
+              title:'Progression',
+              value:`${stats.pct}%`,
+              sub:`${stats.done} sur ${stats.total}`,
+              tone:'progress',
+              iconType:'progress'
+            })}
+          </div>
         </div>
     </div>
 
@@ -1518,6 +1799,18 @@ function modalHtml(){
             <button class="btn ${p.status==='done'?'active status-done':''}" data-set-status="done">Fait</button>
           </div>
         </div>
+        
+        ${p.status === 'done' ? `
+          <div class="modal-section">
+            <div class="modal-section-lbl">Date de réalisation</div>
+
+            <input
+              type="date"
+              id="completedDateInput"
+              value="${escapeHtml(p.completedAt || todayISO())}">
+          </div>
+        ` : ''}
+
         <div class="modal-section">
           <div class="modal-section-lbl">Ma note ${p.status!=='done' ? '(disponible pour une voie faite)' : ''}</div>
           <div class="btn-row">
@@ -1909,6 +2202,20 @@ if(gradeSliderMin && gradeSliderMax && gradeSliderWrap){
     };
   });
 
+  const completedDateInput = document.getElementById('completedDateInput');
+  if(completedDateInput){
+    completedDateInput.onchange = () => {
+      if(!state.modalRouteId) return;
+
+      PersonalStore.setCompletedAt(
+        state.modalRouteId,
+        completedDateInput.value
+      );
+
+      render();
+    };
+  }
+
   const resetBtn = document.getElementById('resetBtn');
   if(resetBtn) resetBtn.onclick = () => { state.confirmReset = true; render(); };
   const cancelResetBtn = document.getElementById('cancelResetBtn');
@@ -1922,6 +2229,7 @@ if(gradeSliderMin && gradeSliderMax && gradeSliderWrap){
 }
 
 render();
+window.addEventListener('resize', updateStatsGridLayout);
 
 </script>
 </body>
