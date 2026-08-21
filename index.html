@@ -1005,6 +1005,117 @@ input[type="range"].grade-range:focus::-moz-range-thumb{box-shadow:0 0 0 3px var
 .rating-btn.active{background:var(--yellow-dim);border-color:var(--yellow);}
 .rating-btn:disabled{opacity:.35;cursor:not-allowed;}
 
+/* ---- Dashboard bottom cards ---- */
+
+.dashboard-lists-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:16px;
+  margin-top:16px;
+}
+
+.dashboard-list-card{
+  min-width:0;
+}
+
+.dashboard-list-row{
+  display:grid;
+  align-items:center;
+  gap:12px;
+  min-height:56px;
+  border-top:1px solid var(--border);
+  cursor:pointer;
+}
+
+.dashboard-list-row:first-child{
+  border-top:none;
+}
+
+.dashboard-list-row:hover{
+  background:var(--card-alt);
+}
+
+/* Dernières voies */
+
+.recent-route-row{
+  grid-template-columns:28px minmax(0,1fr) 60px 85px 110px;
+}
+
+.recent-route-check{
+  width:23px;
+  height:23px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:50%;
+  background:var(--green-dim);
+  color:var(--green);
+  font-weight:800;
+}
+
+.dashboard-route-name{
+  min-width:0;
+  font-weight:600;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.dashboard-route-grade{
+  font-weight:700;
+  color:var(--text-dim);
+}
+
+.dashboard-route-meta{
+  color:var(--text-dim);
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+/* À faire */
+
+.todo-preview-row{
+  grid-template-columns:minmax(0,1fr) 60px 120px;
+}
+
+.dashboard-card-subtitle{
+  text-transform:none;
+  font-weight:400;
+  color:var(--text-dim);
+}
+
+@media(max-width:760px){
+
+  .dashboard-lists-grid{
+    grid-template-columns:1fr;
+  }
+
+  .recent-route-row{
+    grid-template-columns:26px minmax(0,1fr) auto;
+    padding:8px 0;
+  }
+
+  .recent-route-row .dashboard-route-date{
+    grid-column:2;
+    font-size:11px;
+  }
+
+  .recent-route-row .dashboard-route-place{
+    display:none;
+  }
+
+  .todo-preview-row{
+    grid-template-columns:minmax(0,1fr) auto;
+    padding:8px 0;
+  }
+
+  .todo-preview-row .dashboard-route-place{
+    grid-column:1;
+    font-size:11px;
+  }
+}
+
 /* ---- Todo view ---- */
 .empty-state{color:var(--text-dim);font-size:13px;padding:30px 10px;text-align:center;}
 
@@ -1928,7 +2039,125 @@ function accueilHtml(){
         ${regionChartHtml(routes)}
       </div>
     </div>
+    <div class="dashboard-lists-grid">
 
+      ${recentRoutesHtml()}
+
+      ${todoPreviewHtml()}
+
+    </div>
+  `;
+}
+
+function recentRoutesHtml(){
+
+  const recentRoutes = ROUTES
+    .map(route => ({
+      route,
+      personal: personalOf(route)
+    }))
+    .filter(x =>
+      x.personal.status === 'done' &&
+      x.personal.completedAt
+    )
+    .sort((a,b) =>
+      b.personal.completedAt.localeCompare(a.personal.completedAt)
+    )
+    .slice(0,4);
+
+  return `
+    <div class="card dashboard-list-card">
+
+      <div class="card-title">
+        <span class="dot"></span>
+        Dernières voies réalisées
+      </div>
+
+      ${
+        recentRoutes.length
+          ? recentRoutes.map(({route, personal}) => `
+              <div
+                class="dashboard-list-row recent-route-row"
+                data-open-route="${route.id}">
+
+                <div class="recent-route-check">✓</div>
+
+                <div class="dashboard-route-name">
+                  ${escapeHtml(route.voie)}
+                </div>
+
+                <div class="dashboard-route-grade">
+                  ${escapeHtml(route.cotation)}
+                </div>
+
+                <div class="dashboard-route-meta dashboard-route-date">
+                  ${formatDateShort(personal.completedAt)}
+                </div>
+
+                <div class="dashboard-route-meta dashboard-route-place">
+                  ${escapeHtml(route.lieu)}
+                </div>
+
+              </div>
+            `).join('')
+          : `
+            <div class="empty-state">
+              Aucune voie réalisée pour l'instant.
+            </div>
+          `
+      }
+
+    </div>
+  `;
+}
+
+
+function todoPreviewHtml(){
+
+  const todoRoutes = ROUTES
+    .filter(route => statusOf(route) === 'todo')
+    .slice(0,4);
+
+  return `
+    <div class="card dashboard-list-card">
+
+      <div class="card-title">
+        <span class="dot"></span>
+        À faire
+        <span class="dashboard-card-subtitle">
+          (prochaines sur ta liste)
+        </span>
+      </div>
+
+      ${
+        todoRoutes.length
+          ? todoRoutes.map(route => `
+              <div
+                class="dashboard-list-row todo-preview-row"
+                data-open-route="${route.id}">
+
+                <div class="dashboard-route-name">
+                  ${escapeHtml(route.voie)}
+                </div>
+
+                <div class="dashboard-route-grade">
+                  ${escapeHtml(route.cotation)}
+                </div>
+
+                <div class="dashboard-route-meta dashboard-route-place">
+                  ${escapeHtml(route.lieu)}
+                </div>
+
+              </div>
+            `).join('')
+          : `
+            <div class="empty-state">
+              Aucune voie dans ta liste à faire.
+            </div>
+          `
+      }
+
+    </div>
   `;
 }
 
