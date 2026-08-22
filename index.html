@@ -1614,12 +1614,36 @@ const state = {
   filtersOpen: false,
   view: 'accueil',               // accueil | regions | todo | params
   nav: { region:null, lieu:null, secteur:null },
-  filters: {
+  filtersByView: {
+
+  accueil: {
     search: '',
     gradeMin: GRADE_ORDER[0],
     gradeMax: GRADE_ORDER[GRADE_ORDER.length-1],
-    status: 'all',                // all | done | todo | other  (liste de voies uniquement)
+    status: 'all',
+    includeVariants: true,
+    includeNR: true
   },
+
+  regions: {
+    search: '',
+    gradeMin: GRADE_ORDER[0],
+    gradeMax: GRADE_ORDER[GRADE_ORDER.length-1],
+    status: 'all',
+    includeVariants: true,
+    includeNR: true
+  },
+
+  todo: {
+    search: '',
+    gradeMin: GRADE_ORDER[0],
+    gradeMax: GRADE_ORDER[GRADE_ORDER.length-1],
+    status: 'all',
+    includeVariants: true,
+    includeNR: true
+  }
+
+},
   prefs: PersonalStore.getPrefs(),
   modalRouteId: null,
   confirmReset: false,
@@ -1635,23 +1659,53 @@ gradeChartRegionsOpen: false,
 
 /* ---------- 4. FILTRAGE / CALCULS ---------- */
 function personalOf(route){ return PersonalStore.getRoute(route.id); }
+function currentFilters(){
+  return state.filtersByView[state.view];
+}
 
 // Filtres "de portée" : variantes, NR, plage de cotation, recherche.
 // S'appliquent partout (stats, graphiques, navigation, listes).
 function inScope(route){
-  if(!state.prefs.includeVariants && route.variante) return false;
+
+  const filters = currentFilters();
+
+  if(!filters.includeVariants && route.variante){
+    return false;
+  }
+
   const rated = isRatedGrade(route.cotation);
+
   if(!rated){
-    if(!state.prefs.includeNR) return false;
+
+    if(!filters.includeNR){
+      return false;
+    }
+
   } else {
+
     const gi = gradeIndex(route.cotation);
-    if(gi < gradeIndex(state.filters.gradeMin) || gi > gradeIndex(state.filters.gradeMax)) return false;
+
+    if(
+      gi < gradeIndex(filters.gradeMin) ||
+      gi > gradeIndex(filters.gradeMax)
+    ){
+      return false;
+    }
   }
-  if(state.filters.search){
-    const s = state.filters.search.toLowerCase();
-    const hay = (route.voie+' '+route.lieu+' '+route.secteur).toLowerCase();
-    if(!hay.includes(s)) return false;
+
+  if(filters.search){
+
+    const s = filters.search.toLowerCase();
+
+    const hay =
+      (route.voie+' '+route.lieu+' '+route.secteur)
+      .toLowerCase();
+
+    if(!hay.includes(s)){
+      return false;
+    }
   }
+
   return true;
 }
 
@@ -1674,16 +1728,32 @@ function computeStats(routes){
 
 // Applique en plus le filtre de statut (utilisé uniquement pour les listes de voies affichées)
 function displayFilterStatus(routes){
-  if(state.filters.status === 'all') return routes;
-  return routes.filter(r=>{
-    const s = statusOf(r);
-    if(state.filters.status === 'done') return s === 'done';
-    if(state.filters.status === 'todo') return s === 'todo';
-    if(state.filters.status === 'other') return s === 'none';
+
+  const filters = currentFilters();
+
+  if(filters.status === 'all'){
+    return routes;
+  }
+
+  return routes.filter(route=>{
+
+    const status = statusOf(route);
+
+    if(filters.status === 'done'){
+      return status === 'done';
+    }
+
+    if(filters.status === 'todo'){
+      return status === 'todo';
+    }
+
+    if(filters.status === 'other'){
+      return status === 'none';
+    }
+
     return true;
   });
 }
-
 function groupBy(routes, keyFn){
   const map = new Map();
   routes.forEach(r=>{
@@ -2063,69 +2133,103 @@ function dashboardTriangleCard(){
 }
 
 function activeFilterCount(){
+
+  const filters = currentFilters();
+
   let count = 0;
 
-  if(state.filters.search.trim()) count++;
+  if(filters.search?.trim()){
+    count++;
+  }
 
   if(
-    state.filters.gradeMin !== GRADE_ORDER[0] ||
-    state.filters.gradeMax !== GRADE_ORDER[GRADE_ORDER.length - 1]
+    filters.gradeMin !== GRADE_ORDER[0] ||
+    filters.gradeMax !== GRADE_ORDER[GRADE_ORDER.length - 1]
   ){
     count++;
   }
 
-  if(!state.prefs.includeVariants) count++;
+  if(!filters.includeVariants){
+    count++;
+  }
 
-  if(!state.prefs.includeNR) count++;
+  if(!filters.includeNR){
+    count++;
+  }
 
   return count;
 }
 
 function filterChipsHtml(){
+
+  const filters = currentFilters();
+
   const chips = [];
 
-  if(state.filters.search.trim()){
+  if(filters.search?.trim()){
+
     chips.push(`
-      <button class="filter-chip" data-clear-filter="search">
-        “${escapeHtml(state.filters.search)}”
+      <button
+        class="filter-chip"
+        data-clear-filter="search">
+
+        “${escapeHtml(filters.search)}”
         <span>×</span>
+
       </button>
     `);
   }
 
   if(
-    state.filters.gradeMin !== GRADE_ORDER[0] ||
-    state.filters.gradeMax !== GRADE_ORDER[GRADE_ORDER.length - 1]
+    filters.gradeMin !== GRADE_ORDER[0] ||
+    filters.gradeMax !== GRADE_ORDER[GRADE_ORDER.length - 1]
   ){
+
     chips.push(`
-      <button class="filter-chip" data-clear-filter="grade">
-        ${escapeHtml(state.filters.gradeMin)} → ${escapeHtml(state.filters.gradeMax)}
+      <button
+        class="filter-chip"
+        data-clear-filter="grade">
+
+        ${escapeHtml(filters.gradeMin)}
+        →
+        ${escapeHtml(filters.gradeMax)}
+
         <span>×</span>
+
       </button>
     `);
   }
 
-  if(!state.prefs.includeVariants){
+  if(!filters.includeVariants){
+
     chips.push(`
-      <button class="filter-chip" data-clear-filter="variants">
+      <button
+        class="filter-chip"
+        data-clear-filter="variants">
+
         Sans variantes
         <span>×</span>
+
       </button>
     `);
   }
 
-  if(!state.prefs.includeNR){
+  if(!filters.includeNR){
+
     chips.push(`
-      <button class="filter-chip" data-clear-filter="nr">
+      <button
+        class="filter-chip"
+        data-clear-filter="nr">
+
         NR exclus
         <span>×</span>
+
       </button>
     `);
   }
 
   return chips.join('');
 }
-
 function pbarHtml(stats){
   const {total, done, todo, other} = stats;
   if(total === 0) return `<div class="pbar"></div>`;
@@ -2165,9 +2269,10 @@ function updateStatsGridLayout(){
 // Deux <input type="range"> superposés, pas=1, sur les index de GRADE_ORDER —
 // l'utilisateur ne voit jamais ces index, uniquement les vraies cotations.
 function gradeSliderHtml(){
+  const filters = currentFilters();
   const lastIdx = GRADE_ORDER.length - 1;
-  const minIdx = gradeIndex(state.filters.gradeMin);
-  const maxIdx = gradeIndex(state.filters.gradeMax);
+  const minIdx = gradeIndex(filters.gradeMin);
+  const maxIdx = gradeIndex(filters.gradeMax);
 
   const fillLeft = gradePositionPct(minIdx);
   const fillRight = gradePositionPct(maxIdx);
@@ -2176,7 +2281,7 @@ function gradeSliderHtml(){
   return `
     <div class="grade-slider">
       <div class="grade-slider-readout" id="gradeSliderReadout">
-        ${escapeHtml(state.filters.gradeMin)} → ${escapeHtml(state.filters.gradeMax)}
+        ${escapeHtml(filters.gradeMin)} → ${escapeHtml(filters.gradeMax)}
       </div>
 
       <div class="grade-slider-wrap">
@@ -2532,14 +2637,14 @@ function accueilHtml(){
           <div class="filters-options">
 
             <label class="toggle" id="toggleVariants">
-              <div class="switch ${!state.prefs.includeVariants?'on':''}">
+              <div class="switch ${!currentFilters().includeVariants?'on':''}">
                 <div class="knob"></div>
               </div>
               Exclure les variantes
             </label>
 
             <label class="toggle" id="toggleNR">
-              <div class="switch ${!state.prefs.includeNR?'on':''}">
+              <div class="switch ${!currentFilters().includeNR?'on':''}">
                 <div class="knob"></div>
               </div>
               Exclure les NR
@@ -2552,7 +2657,7 @@ function accueilHtml(){
 
     <div class="grid cols-2">
       <div class="card grade-progress-card">
-        <div class="card-title"><span class="dot"></span>Progression par difficulté</div>
+        <div class="card-title"><span class="dot"></span>Progression par cotation</div>
         ${gradeChartHtml(routes)}
       </div>
       <div class="card">
@@ -2903,12 +3008,12 @@ function regionsHtml(){
   const filterBar = `
     <div class="filter-bar">
       <select id="statusFilterSel">
-        <option value="all" ${state.filters.status==='all'?'selected':''}>Toutes</option>
-        <option value="done" ${state.filters.status==='done'?'selected':''}>Faites</option>
-        <option value="todo" ${state.filters.status==='todo'?'selected':''}>À faire</option>
-        <option value="other" ${state.filters.status==='other'?'selected':''}>Autres</option>
+        <option value="all" ${currentFilters().status==='all'?'selected':''}>Toutes</option>
+        <option value="done" ${currentFilters().status==='done'?'selected':''}>Faites</option>
+        <option value="todo" ${currentFilters().status==='todo'?'selected':''}>À faire</option>
+        <option value="other" ${currentFilters().status==='other'?'selected':''}>Autres</option>
       </select>
-      <input type="text" id="searchInput2" placeholder="Rechercher une voie…" value="${escapeHtml(state.filters.search)}">
+      <input type="text" id="searchInput2" placeholder="Rechercher une voie…" value="${escapeHtml(currentFilters().search)}">
     </div>
     <div style="margin-bottom:14px;">
       ${gradeSliderHtml()}
@@ -3066,7 +3171,7 @@ function todoHtml(){
     <div class="card">
       <div class="card-title"><span class="dot"></span>À faire — ma wishlist</div>
       <div class="filter-bar">
-        <input type="text" id="searchInput3" placeholder="Filtrer par nom, lieu, secteur…" value="${escapeHtml(state.filters.search)}">
+        <input type="text" id="searchInput3" placeholder="Filtrer par nom, lieu, secteur…" value="${escapeHtml(currentFilters().search)}">
       </div>
       <div style="margin-bottom:10px;">
         ${gradeSliderHtml()}
@@ -3389,39 +3494,39 @@ if(gradeRegionSelectAll){
   });
 
   document.querySelectorAll('[data-clear-filter]').forEach(el=>{
-    el.onclick = () => {
+
+    el.onclick = ()=>{
 
       const filter = el.dataset.clearFilter;
+      const filters = currentFilters();
 
       if(filter === 'search'){
-        state.filters.search = '';
+        filters.search = '';
       }
 
       if(filter === 'grade'){
-        state.filters.gradeMin = GRADE_ORDER[0];
-        state.filters.gradeMax = GRADE_ORDER[GRADE_ORDER.length - 1];
+        filters.gradeMin = GRADE_ORDER[0];
+        filters.gradeMax = GRADE_ORDER[GRADE_ORDER.length - 1];
       }
 
       if(filter === 'variants'){
-        state.prefs.includeVariants = true;
-        PersonalStore.setPref('includeVariants', true);
+        filters.includeVariants = true;
       }
 
       if(filter === 'nr'){
-        state.prefs.includeNR = true;
-        PersonalStore.setPref('includeNR', true);
+        filters.includeNR = true;
       }
 
       render();
     };
-  });
 
+  });
   // Recherche (les 3 champs partagent le même state, on garde le focus après re-render)
   ['searchInput','searchInput2','searchInput3'].forEach(id=>{
     const el = document.getElementById(id);
     if(!el) return;
     el.oninput = (e) => {
-      state.filters.search = e.target.value;
+      currentFilters().search = e.target.value;
       const cursor = e.target.selectionStart;
       render();
       const again = document.getElementById(id);
@@ -3484,7 +3589,7 @@ if(gradeSliderMin && gradeSliderMax && gradeSliderWrap){
   }
 
   function snapAndCommit(){
-
+    const filters = currentFilters();
     let minIdx = nearestGradeIndex(gradeSliderMin.value);
     let maxIdx = nearestGradeIndex(gradeSliderMax.value);
 
@@ -3495,8 +3600,8 @@ if(gradeSliderMin && gradeSliderMax && gradeSliderWrap){
     gradeSliderMin.value = minIdx;
     gradeSliderMax.value = maxIdx;
 
-    state.filters.gradeMin = GRADE_ORDER[minIdx];
-    state.filters.gradeMax = GRADE_ORDER[maxIdx];
+    filters.gradeMin = GRADE_ORDER[minIdx];
+    filters.gradeMax = GRADE_ORDER[maxIdx];
 
     render();
   }
@@ -3653,28 +3758,36 @@ if(gradeSliderMin && gradeSliderMax && gradeSliderWrap){
   };
 
   const statusSel = document.getElementById('statusFilterSel');
-  if(statusSel) statusSel.onchange = (e)=>{ state.filters.status = e.target.value; render(); };
+  if(statusSel) statusSel.onchange = (e)=>{ currentFilters().status = e.target.value; render(); };
 
   // Toggle variantes / NR
-  const toggleVariants = document.getElementById('toggleVariants');
+const toggleVariants = document.getElementById('toggleVariants');
 
-  if(toggleVariants){
-    toggleVariants.onclick = () => {
-      state.prefs.includeVariants = !state.prefs.includeVariants;
-      PersonalStore.setPref('includeVariants', state.prefs.includeVariants);
-      render();
-    };
-  }
+if(toggleVariants){
+  toggleVariants.onclick = () => {
 
-  const toggleNR = document.getElementById('toggleNR');
+    const filters = currentFilters();
 
-  if(toggleNR){
-    toggleNR.onclick = () => {
-      state.prefs.includeNR = !state.prefs.includeNR;
-      PersonalStore.setPref('includeNR', state.prefs.includeNR);
-      render();
-    };
-  }
+    filters.includeVariants =
+      !filters.includeVariants;
+
+    render();
+  };
+}
+
+const toggleNR = document.getElementById('toggleNR');
+
+if(toggleNR){
+  toggleNR.onclick = () => {
+
+    const filters = currentFilters();
+
+    filters.includeNR =
+      !filters.includeNR;
+
+    render();
+  };
+}
 
   document.querySelectorAll('[data-goto-region]').forEach(el=>{
     el.onclick = () => { state.nav = {region:el.dataset.gotoRegion, lieu:null, secteur:null}; state.view='regions'; render(); };
