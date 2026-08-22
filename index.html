@@ -1027,7 +1027,6 @@ input[type="range"].grade-range:focus::-moz-range-thumb{box-shadow:0 0 0 3px var
 
 .region-sector-head{
   width:100%;
-
   display:grid;
   grid-template-columns:170px minmax(100px,1fr) 38px 20px;
   align-items:center;
@@ -1048,10 +1047,7 @@ input[type="range"].grade-range:focus::-moz-range-thumb{box-shadow:0 0 0 3px var
   font:inherit;
   text-align:left;
   cursor:pointer;
-}
-
-.region-sector-head:hover{
-  background:transparent;
+  transition:background .15s ease, color .15s ease;
 }
 
 .region-sector-head:hover .region-sector-name{
@@ -1060,6 +1056,8 @@ input[type="range"].grade-range:focus::-moz-range-thumb{box-shadow:0 0 0 3px var
 
 .region-sector-name{
   min-width:0;
+
+  padding-left:26px;
 
   font-size:13px;
   font-weight:600;
@@ -1072,13 +1070,10 @@ input[type="range"].grade-range:focus::-moz-range-thumb{box-shadow:0 0 0 3px var
 
 .region-sector-bar{
   display:flex;
-
   width:100%;
   height:16px;
-
   overflow:hidden;
   border-radius:5px;
-
   background:var(--gray-dim);
 }
 
@@ -1100,31 +1095,60 @@ input[type="range"].grade-range:focus::-moz-range-thumb{box-shadow:0 0 0 3px var
 .region-sector-count{
   width:38px;
   text-align:right;
-
   font-size:12.5px;
   color:var(--text-dim);
 }
 
 .region-sector-chevron{
   width:20px;
-
   display:flex;
   align-items:center;
   justify-content:center;
 
   color:var(--text-faint);
+  font-size:18px;
+  font-weight:800;
+  line-height:1;
 }
 
+/* --- état ouvert --- */
+.region-sector.open .region-sector-head{
+  padding-bottom:12px;
+}
+
+.region-sector.open .region-sector-name{
+  color:var(--title);
+}
+
+.region-sector.open .region-sector-chevron{
+  color:var(--title);
+}
+
+/* --- sous-bloc des voies --- */
 .region-sector-routes{
-  border-top:1px solid var(--border);
+  margin:0 0 12px 26px;
+  padding:10px 14px 8px 14px;
 
-  padding:4px 0 8px 22px;
+  background:var(--card-alt);
+  border:1px solid var(--border);
+  border-radius:12px;
+}
 
-  background:transparent;
+.region-routes-label{
+  font-size:11px;
+  font-weight:700;
+  color:var(--text-dim);
+  text-transform:uppercase;
+  letter-spacing:.04em;
+  margin-bottom:6px;
 }
 
 .region-sector-routes .route-row{
-  padding:9px 0;
+  padding:10px 0;
+}
+
+.region-sector-routes .route-row:last-child{
+  border-bottom:none;
 }
 
 @media(max-width:640px){
@@ -3231,7 +3255,7 @@ function regionsHtml(){
 
 
              return `
-              <div class="region-sector">
+              <div class="region-sector ${isOpen ? 'open' : ''}">
 
                 <button
                   class="region-sector-head"
@@ -3265,7 +3289,7 @@ function regionsHtml(){
                   </span>
 
                   <span class="region-sector-chevron">
-                    ${isOpen ? '⌃' : iconChevron()}
+                    ${isOpen ? '^' : '⌄'}
                   </span>
 
                 </button>
