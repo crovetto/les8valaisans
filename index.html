@@ -1385,6 +1385,163 @@ input[type="range"].grade-range:focus::-moz-range-thumb{box-shadow:0 0 0 3px var
 .crumbs .crumb.current{color:var(--text);font-weight:600;cursor:default;}
 .crumbs .sep{color:var(--text-faint);}
 
+/* ---- Vue Cotations ---- */
+
+.grade-list{
+  width:100%;
+}
+
+.grade-list-item{
+  border-top:1px solid var(--border);
+}
+
+.grade-list-item:first-child{
+  border-top:none;
+}
+
+.grade-list-head{
+  width:100%;
+
+  display:grid;
+  grid-template-columns:55px minmax(100px,1fr) 42px 20px;
+  align-items:center;
+  gap:14px;
+
+  padding:13px 0;
+
+  border:0;
+  background:transparent;
+  color:var(--text);
+
+  font:inherit;
+  text-align:left;
+
+  cursor:pointer;
+}
+
+.grade-list-head:hover .grade-list-name{
+  color:var(--accent);
+}
+
+.grade-list-name{
+  font-size:15px;
+  font-weight:800;
+  color:var(--text);
+}
+
+.grade-list-bar{
+  display:flex;
+
+  width:100%;
+  height:16px;
+
+  overflow:hidden;
+  border-radius:5px;
+
+  background:var(--gray-dim);
+}
+
+.grade-list-bar-done{
+  height:100%;
+  background:var(--green);
+}
+
+.grade-list-bar-todo{
+  height:100%;
+  background:var(--yellow);
+}
+
+.grade-list-bar-other{
+  height:100%;
+  background:var(--gray);
+}
+
+.grade-list-count{
+  text-align:right;
+  font-size:12.5px;
+  color:var(--text-dim);
+}
+
+.grade-list-chevron{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  font-size:18px;
+  font-weight:800;
+  line-height:1;
+
+  color:var(--text-faint);
+}
+
+.grade-list-item.open .grade-list-name,
+.grade-list-item.open .grade-list-chevron{
+  color:var(--title);
+}
+
+.grade-list-routes{
+  margin:0 0 14px 55px;
+  padding:8px 14px;
+
+  border:1px solid var(--border);
+  border-radius:12px;
+
+  background:var(--card-alt);
+}
+
+.grade-region-group + .grade-region-group{
+  margin-top:16px;
+}
+
+.grade-region-title{
+  font-size:12px;
+  font-weight:800;
+  color:var(--text);
+
+  text-transform:uppercase;
+  letter-spacing:.05em;
+
+  margin:6px 0 4px;
+  padding:8px 10px;
+
+  background:var(--gray-dim);
+  border-radius:7px;
+}
+.grade-region-group + .grade-region-group{
+  margin-top:22px;
+}
+
+.grade-list-routes .route-row{
+  padding:9px 0;
+}
+
+@media(max-width:640px){
+
+  .grade-list-head{
+    grid-template-columns:42px minmax(70px,1fr) 34px 18px;
+    gap:9px;
+  }
+
+  .grade-list-routes{
+    margin-left:16px;
+    padding:7px 10px;
+  }
+
+  .grade-list-name{
+    font-size:14px;
+  }
+}
+
+
+.cotation-route-location{
+  margin-top:3px;
+
+  font-size:11.5px;
+  font-weight:500;
+
+  color:var(--text-dim);
+}
+
 /* ---- Route list ---- */
 .route-row{
   display:flex;align-items:center;gap:10px;padding:10px 0;
@@ -1552,6 +1709,7 @@ input[type="range"].grade-range:focus::-moz-range-thumb{box-shadow:0 0 0 3px var
   text-overflow:ellipsis;
   white-space:nowrap;
 }
+
 
 /* À faire */
 
@@ -1810,6 +1968,15 @@ const state = {
     includeNR: true
   },
 
+  cotations: {
+  search: '',
+  gradeMin: GRADE_ORDER[0],
+  gradeMax: GRADE_ORDER[GRADE_ORDER.length-1],
+  status: 'all',
+  includeVariants: true,
+  includeNR: true
+},
+
   todo: {
     search: '',
     gradeMin: GRADE_ORDER[0],
@@ -1832,6 +1999,7 @@ const state = {
 gradeChartRegions: null,
 gradeChartRegionsOpen: false,
 openRegionSector: null,
+openGrade: null,
 };
 
 /* ---------- 4. FILTRAGE / CALCULS ---------- */
@@ -2680,11 +2848,12 @@ function authHtml(){
 
 function topnavHtml(){
   const tabs = [
-    {id:'accueil', label:'Accueil', icon:iconHome()},
-    {id:'regions', label:'Régions', icon:iconLayers()},
-    {id:'todo', label:'À faire', icon:iconCheck()},
-    {id:'params', label:'Paramètres', icon:iconGear()},
-  ];
+  {id:'accueil', label:'Accueil', icon:iconHome()},
+  {id:'regions', label:'Régions', icon:iconLayers()},
+  {id:'cotations', label:'Cotations', icon:iconGrades()},
+  {id:'todo', label:'À faire', icon:iconCheck()},
+  {id:'params', label:'Paramètres', icon:iconGear()},
+];
 
   return `
     <div class="app-header">
@@ -2749,6 +2918,7 @@ function topnavHtml(){
 function viewHtml(){
   if(state.view === 'accueil') return accueilHtml();
   if(state.view === 'regions') return regionsHtml();
+  if(state.view === 'cotations') return cotationsHtml();
   if(state.view === 'todo') return todoHtml();
   if(state.view === 'params') return paramsHtml();
   return '';
@@ -3179,6 +3349,193 @@ function regionChartHtml(routes){
   `;
 }
 
+function cotationRouteRowHtml(r){
+
+  const p = personalOf(r);
+
+  const dotClass =
+    p.status === 'done'
+      ? 'done'
+      : (p.status === 'todo' ? 'todo' : '');
+
+  const dotContent =
+    p.status === 'done' ? '✓' : '';
+
+  return `
+    <div class="route-row" data-open-route="${r.id}">
+
+      <div
+        class="status-dot ${dotClass}"
+        data-toggle-done="${r.id}">
+        ${dotContent}
+      </div>
+
+      <div class="route-main">
+
+        <div class="route-name">
+          ${escapeHtml(r.voie)}
+        </div>
+
+        <div class="cotation-route-location">
+          ${escapeHtml(r.lieu)}
+          <span>·</span>
+          ${escapeHtml(r.secteur)}
+        </div>
+
+        <div class="route-sub">
+          <span class="grade-pill">
+            ${escapeHtml(r.cotation)}
+          </span>
+
+          <span>
+            Qualité topo : ${qualiteLabel(r.qualite)}
+          </span>
+
+          ${r.variante
+            ? `<span class="variant-badge">Variante</span>`
+            : ''
+          }
+        </div>
+
+      </div>
+
+      <div class="route-rating stars ${
+        p.status === 'done' && p.rating ? 'filled' : ''
+      }">
+        ${p.status === 'done' ? ratingLabel(p.rating) : ''}
+      </div>
+
+    </div>
+  `;
+}
+function cotationsHtml(){
+
+  const routes = displayFilterStatus(scopedRoutes());
+
+  const grades = [
+    ...GRADE_ORDER,
+    'NR'
+  ];
+
+  const rowsHtml = grades.map(grade=>{
+
+    const gradeRoutes = routes.filter(route=>{
+
+      if(grade === 'NR'){
+        return !isRatedGrade(route.cotation);
+      }
+
+      return route.cotation === grade;
+    });
+
+    if(!gradeRoutes.length){
+      return '';
+    }
+
+    const stats = computeStats(gradeRoutes);
+
+    const isOpen =
+      state.openGrade === grade;
+
+    const byRegion =
+      groupBy(gradeRoutes, route => route.region);
+
+    const routesHtml =
+      Array.from(byRegion.entries())
+        .sort((a,b)=>a[0].localeCompare(b[0]))
+        .map(([regionName, regionRoutes])=>`
+          <div class="grade-region-group">
+
+            <div class="grade-region-title">
+              ${escapeHtml(regionName)}
+            </div>
+
+            ${regionRoutes
+              .sort((a,b)=>a.voie.localeCompare(b.voie))
+              .map(cotationRouteRowHtml)
+              .join('')}
+
+          </div>
+        `)
+        .join('');
+
+    return `
+      <div class="grade-list-item ${isOpen ? 'open' : ''}">
+
+        <button
+          class="grade-list-head"
+          data-toggle-grade="${escapeHtml(grade)}">
+
+          <span class="grade-list-name">
+            ${escapeHtml(grade)}
+          </span>
+
+          <span class="grade-list-bar">
+
+            <span
+              class="grade-list-bar-done"
+              style="width:${stats.total ? stats.done / stats.total * 100 : 0}%">
+            </span>
+
+            <span
+              class="grade-list-bar-todo"
+              style="width:${stats.total ? stats.todo / stats.total * 100 : 0}%">
+            </span>
+
+            <span
+              class="grade-list-bar-other"
+              style="width:${stats.total ? stats.other / stats.total * 100 : 0}%">
+            </span>
+
+          </span>
+
+          <span class="grade-list-count">
+            ${stats.total}
+          </span>
+
+          <span class="grade-list-chevron">
+            ${isOpen ? '^' : '⌄'}
+          </span>
+
+        </button>
+
+        ${isOpen ? `
+          <div class="grade-list-routes">
+            ${routesHtml}
+          </div>
+        ` : ''}
+
+      </div>
+    `;
+
+  }).join('');
+
+  return `
+    <div class="card">
+
+      <div class="card-title">
+        <span class="dot"></span>
+        Cotations
+      </div>
+
+      <div class="legend">
+        <span><i class="sw done"></i>Faites</span>
+        <span><i class="sw todo"></i>À faire</span>
+        <span><i class="sw other"></i>Restantes</span>
+      </div>
+
+      <div class="grade-list">
+        ${rowsHtml || `
+          <div class="empty-state">
+            Aucune voie ne correspond aux filtres.
+          </div>
+        `}
+      </div>
+
+    </div>
+  `;
+}
+
 /* ---- Vue Régions (navigation hiérarchique) ---- */
 function regionsHtml(){
   const {region, lieu, secteur} = state.nav;
@@ -3591,6 +3948,21 @@ function iconCheck(){ return `<svg width="15" height="15" viewBox="0 0 24 24" fi
 function iconGear(){ return `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`; }
 function iconChevron(){ return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`; }
 function iconLocation(){return `<svg viewBox="0 0 64 64" fill="none" aria-hidden="true"><path d="M32 56s16-15.2 16-30a16 16 0 1 0-32 0c0 14.8 16 30 16 30Z"stroke="currentColor"stroke-width="4"stroke-linejoin="round"/><circle cx="32"cy="26"r="6"stroke="currentColor"stroke-width="4"/></svg>`;}
+function iconGrades(){
+  return `
+    <svg width="15" height="15"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round">
+      <path d="M5 19V9"/>
+      <path d="M12 19V5"/>
+      <path d="M19 19v-7"/>
+    </svg>
+  `;
+}
 
 // Togglerapide du statut au clic sur l'indicateur, sans ouvrir la modal
 function toggleDoneStatus(id){
@@ -3763,6 +4135,23 @@ if(gradeRegionSelectAll){
       render();
     };
   });
+
+  document.querySelectorAll('[data-toggle-grade]').forEach(button=>{
+
+  button.onclick = ()=>{
+
+    const grade =
+      button.dataset.toggleGrade;
+
+    state.openGrade =
+      state.openGrade === grade
+        ? null
+        : grade;
+
+    render();
+  };
+
+});
 
   document.querySelectorAll('[data-nav]').forEach(el=>{
     el.onclick = () => {
