@@ -578,6 +578,41 @@ body{
   grid-template-columns:repeat(2,minmax(0,1fr));
 }
 
+.dashboard-stat.percentage{
+  grid-template-columns:minmax(0,1fr) 58px;
+}
+
+.dashboard-percent-text{
+  min-width:0;
+}
+.dashboard-percent-change{
+  color:var(--green);
+  font-weight:600;
+}
+
+.dashboard-percent-ring{
+  --progress:0%;
+
+  width:54px;
+  height:54px;
+  border-radius:50%;
+
+  background:
+    conic-gradient(
+      var(--accent) 0 var(--progress),
+      color-mix(in srgb, var(--accent) 18%, transparent) var(--progress) 100%
+    );
+
+  position:relative;
+}
+
+.dashboard-percent-ring::after{
+  content:"";
+  position:absolute;
+  inset:8px;
+  border-radius:50%;
+  background:var(--card);
+}
 
 .dashboard-stat{
   display:grid;
@@ -653,6 +688,105 @@ body{
 
 .dashboard-stat.progress .dashboard-stat-icon{
   color:var(--title);
+}
+/* ---- Dashboard stats grid ---- */
+
+.dashboard-stats-four{
+  grid-template-columns:repeat(4,minmax(0,1fr));
+}
+
+.dashboard-positive{
+  color:var(--green);
+  font-weight:600;
+}
+
+.dashboard-stat.place .dashboard-stat-icon{
+  color:var(--accent);
+}
+
+.dashboard-place-name{
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.triangle-card{
+  display:block;
+}
+
+.dashboard-triangle-content{
+  width:100%;
+}
+
+.triangle-mini-chart{
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+}
+
+.triangle-mini-row{
+  display:grid;
+  grid-template-columns:28px minmax(0,1fr) 22px;
+  align-items:center;
+  gap:7px;
+}
+
+.triangle-grade,
+.triangle-count{
+  font-size:10px;
+  color:var(--text-dim);
+}
+
+.triangle-grade{
+  font-weight:700;
+}
+
+.triangle-count{
+  text-align:right;
+}
+
+/* Zone complète du graphe */
+.triangle-track{
+  position:relative;
+  height:10px;
+}
+
+/* Petit axe central */
+.triangle-track::before{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:0;
+  bottom:0;
+  width:1px;
+  background:var(--border);
+  transform:translateX(-50%);
+}
+
+/* Barre centrée : elle grandit à gauche ET à droite */
+.triangle-fill{
+  position:absolute;
+  left:50%;
+  top:50%;
+
+  height:7px;
+
+  transform:translate(-50%, -50%);
+
+  background:var(--yellow);
+  border-radius:2px;
+}
+
+@media(max-width:900px){
+  .dashboard-stats-four{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+
+@media(max-width:520px){
+  .dashboard-stats-four{
+    grid-template-columns:1fr;
+  }
 }
 
 /* ---- Buttons / toggles ---- */
@@ -1507,6 +1641,234 @@ function dashboardStatCard({title, value, sub, tone, iconType}){
   `;
 }
 
+function dashboardPercentCard(){
+
+  const total = ROUTES.length;
+
+  const done = ROUTES.filter(route =>
+    personalOf(route).status === 'done'
+  ).length;
+
+  const pct = total
+    ? (done / total) * 100
+    : 0;
+
+  const pctDisplay = pct.toFixed(1).replace('.', ',');
+
+  return `
+    <div class="dashboard-stat percentage">
+
+      <div class="dashboard-percent-text">
+
+        <div class="dashboard-stat-title">
+          Pourcentage réalisé
+        </div>
+
+        <div class="dashboard-stat-value">
+          ${pctDisplay}%
+        </div>
+
+        <div class="dashboard-stat-sub">
+          progression globale
+        </div>
+
+      </div>
+
+      <div
+        class="dashboard-percent-ring"
+        style="--progress:${pct}%">
+      </div>
+
+    </div>
+  `;
+}
+
+function dashboardDoneCard(){
+
+  const doneRoutes = ROUTES
+    .map(route => ({
+      route,
+      personal: personalOf(route)
+    }))
+    .filter(x => x.personal.status === 'done');
+
+  const now = new Date();
+
+  const startOfMonth =
+    `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2,'0')}-01`;
+
+  const doneThisMonth = doneRoutes.filter(x =>
+    x.personal.completedAt &&
+    x.personal.completedAt >= startOfMonth
+  ).length;
+
+  return `
+    <div class="dashboard-stat done">
+
+      <div class="dashboard-stat-icon">
+        ${dashboardStatIcon('done')}
+      </div>
+
+      <div class="dashboard-stat-text">
+
+        <div class="dashboard-stat-title">
+          Voies réalisées
+        </div>
+
+        <div class="dashboard-stat-value">
+          ${doneRoutes.length}
+        </div>
+
+        <div class="dashboard-stat-sub dashboard-positive">
+          +${doneThisMonth} ce mois
+        </div>
+
+      </div>
+
+    </div>
+  `;
+}
+
+function dashboardPlaceCard(){
+
+  const now = new Date();
+
+  const startOfMonth =
+    `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2,'0')}-01`;
+
+  const monthlyRoutes = ROUTES.filter(route => {
+    const personal = personalOf(route);
+
+    return (
+      personal.status === 'done' &&
+      personal.completedAt &&
+      personal.completedAt >= startOfMonth
+    );
+  });
+
+  const counts = new Map();
+
+  monthlyRoutes.forEach(route => {
+    counts.set(
+      route.lieu,
+      (counts.get(route.lieu) || 0) + 1
+    );
+  });
+
+  let bestPlace = null;
+  let bestCount = 0;
+
+  counts.forEach((count, lieu) => {
+    if(count > bestCount){
+      bestPlace = lieu;
+      bestCount = count;
+    }
+  });
+
+  return `
+    <div class="dashboard-stat place">
+
+      <div class="dashboard-stat-icon">
+        ${iconLocation()}
+      </div>
+
+      <div class="dashboard-stat-text">
+
+        <div class="dashboard-stat-title">
+          Lieu du mois
+        </div>
+
+        <div class="dashboard-stat-value dashboard-place-name">
+          ${bestPlace ? escapeHtml(bestPlace) : '—'}
+        </div>
+
+        <div class="dashboard-stat-sub">
+          ${
+            bestCount
+              ? `${bestCount} voie${bestCount > 1 ? 's' : ''} ce mois`
+              : 'aucune voie ce mois'
+          }
+        </div>
+
+      </div>
+
+    </div>
+  `;
+}
+
+function dashboardTriangleCard(){
+
+  let values = GRADE_ORDER.map(grade => {
+
+    const count = ROUTES.filter(route =>
+      route.cotation === grade &&
+      personalOf(route).status === 'done'
+    ).length;
+
+    return {grade, count};
+  });
+
+  const firstNonZero = values.findIndex(x => x.count > 0);
+
+  let lastNonZero = -1;
+
+  for(let i = values.length - 1; i >= 0; i--){
+    if(values[i].count > 0){
+      lastNonZero = i;
+      break;
+    }
+  }
+
+  if(firstNonZero !== -1 && lastNonZero !== -1){
+    values = values.slice(firstNonZero, lastNonZero + 1);
+  }
+  const maxCount = Math.max(
+  1,
+  ...values.map(x => x.count)
+);
+
+  return `
+    <div class="dashboard-stat triangle-card">
+
+      <div class="dashboard-triangle-content">
+
+
+        <div class="triangle-mini-chart">
+
+          ${values.map(({grade, count}) => {
+
+            const width = (count / maxCount) * 100;
+
+            return `
+              <div class="triangle-mini-row">
+
+                <span class="triangle-grade">
+                  ${grade}
+                </span>
+
+                <div class="triangle-track">
+                  <div
+                    class="triangle-fill"
+                    style="width:${width}%">
+                  </div>
+                </div>
+
+                <span class="triangle-count">
+                  ${count}
+                </span>
+
+              </div>
+            `;
+          }).join('')}
+
+        </div>
+
+      </div>
+
+    </div>
+  `;
+}
+
 function activeFilterCount(){
   let count = 0;
 
@@ -1918,7 +2280,7 @@ function accueilHtml(){
   const filterCount = activeFilterCount();
 
   return `
-    <div class="dashboard-header">
+    <div class="dashboard-header"> 
       <h1>Bonjour ${escapeHtml(state.user.firstName)} !</h1>
       <p>Voici un aperçu de ta progression</p>
     </div>
@@ -1983,51 +2345,20 @@ function accueilHtml(){
       </div>
     ` : ''}
 
-    <div class="stats-grid-wrap">
-      <div class="stats-grid">
+      
+      <div class="stats-grid-wrap">
+        <div class="stats-grid dashboard-stats-four">
 
-        ${dashboardStatCard({
-          title:'Voies réalisées',
-          value:stats.done,
-          sub:`sur ${stats.total}`,
-          tone:'done',
-          iconType:'done'
-        })}
+          ${dashboardDoneCard()}
 
-        ${dashboardStatCard({
-          title:'À faire',
-          value:stats.todo,
-          sub:`sur ${stats.total}`,
-          tone:'todo',
-          iconType:'todo'
-        })}
+          ${dashboardPercentCard()}
 
-        ${dashboardStatCard({
-          title:'Restantes',
-          value:stats.other,
-          sub:`sur ${stats.total}`,
-          tone:'other',
-          iconType:'other'
-        })}
+          ${dashboardPlaceCard()}
 
-        ${dashboardStatCard({
-          title:'Voies filtrées',
-          value:stats.total,
-          sub:'dans la sélection',
-          tone:'total',
-          iconType:'total'
-        })}
+          ${dashboardTriangleCard()}
 
-        ${dashboardStatCard({
-          title:'Progression',
-          value:`${stats.pct}%`,
-          sub:`${stats.done} sur ${stats.total}`,
-          tone:'progress',
-          iconType:'progress'
-        })}
-
+        </div>
       </div>
-    </div>
 
     <div class="grid cols-2">
       <div class="card grade-progress-card">
@@ -2607,6 +2938,7 @@ function iconLayers(){ return `<svg width="15" height="15" viewBox="0 0 24 24" f
 function iconCheck(){ return `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>`; }
 function iconGear(){ return `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`; }
 function iconChevron(){ return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`; }
+function iconLocation(){return `<svg viewBox="0 0 64 64" fill="none" aria-hidden="true"><path d="M32 56s16-15.2 16-30a16 16 0 1 0-32 0c0 14.8 16 30 16 30Z"stroke="currentColor"stroke-width="4"stroke-linejoin="round"/><circle cx="32"cy="26"r="6"stroke="currentColor"stroke-width="4"/></svg>`;}
 
 // Togglerapide du statut au clic sur l'indicateur, sans ouvrir la modal
 function toggleDoneStatus(id){
