@@ -292,6 +292,36 @@ body{
   margin-left:10px;
 }
 
+.header-profile{
+  margin-left:auto;
+}
+
+.profile-button{
+  width:38px;
+  height:38px;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  border:1px solid var(--border);
+  border-radius:10px;
+
+  background:var(--card-alt);
+  color:var(--text);
+
+  font:inherit;
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:.04em;
+
+  cursor:pointer;
+}
+
+.profile-button:hover{
+  border-color:var(--accent);
+  background:var(--card);
+}
 .sidebar-overlay{
   position:fixed;
   inset:0;
@@ -785,7 +815,13 @@ body{
 
 @media(max-width:520px){
   .dashboard-stats-four{
-    grid-template-columns:1fr;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:10px;
+  }
+
+  .dashboard-stat{
+    min-height:105px;
+    padding:12px;
   }
 }
 
@@ -969,6 +1005,105 @@ input[type="range"].grade-range:focus::-moz-range-thumb{box-shadow:0 0 0 3px var
 .legend .sw.other{background:var(--gray);}
 
 /* ---- Grade bar chart ---- */
+.grade-region-dropdown{
+  position:relative;
+  margin-bottom:12px;
+  width:max-content;
+}
+
+.grade-region-button{
+  display:flex;
+  align-items:center;
+  gap:8px;
+
+  padding:7px 10px;
+
+  border:1px solid var(--border);
+  border-radius:9px;
+
+  background:var(--card-alt);
+  color:var(--text);
+
+  font:inherit;
+  font-size:11.5px;
+  font-weight:700;
+
+  cursor:pointer;
+}
+
+.grade-region-button:hover{
+  border-color:var(--accent);
+}
+
+.grade-region-count{
+  color:var(--text-dim);
+  font-size:10.5px;
+}
+
+.grade-region-chevron{
+  color:var(--text-faint);
+  font-size:9px;
+}
+
+.grade-region-menu{
+  position:absolute;
+  top:calc(100% + 6px);
+  left:0;
+
+  min-width:220px;
+
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:10px;
+
+  padding:7px;
+
+  box-shadow:0 12px 30px rgba(0,0,0,.22);
+
+  z-index:70;
+}
+
+.grade-region-option{
+  display:flex;
+  align-items:center;
+  gap:8px;
+
+  padding:8px 9px;
+  border-radius:7px;
+
+  font-size:11.5px;
+  color:var(--text);
+
+  cursor:pointer;
+}
+
+.grade-region-option:hover{
+  background:var(--card-alt);
+}
+
+.grade-region-option input{
+  accent-color:var(--accent);
+}
+
+.grade-region-select-all{
+  width:100%;
+
+  border:0;
+  border-bottom:1px solid var(--border);
+
+  background:transparent;
+  color:var(--title);
+
+  padding:8px 9px 10px;
+  margin-bottom:4px;
+
+  font:inherit;
+  font-size:11px;
+  font-weight:700;
+  text-align:left;
+
+  cursor:pointer;
+}
 
 .grade-progress-card{
   display:flex;
@@ -1169,7 +1304,42 @@ input[type="range"].grade-range:focus::-moz-range-thumb{box-shadow:0 0 0 3px var
   background:var(--card-alt);
 }
 
-/* Dernières voies */
+.grade-chart-toolbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:10px;
+}
+
+.grade-chart-toolbar .legend{
+  margin-bottom:0;
+}
+
+.grade-region-dropdown{
+  position:relative;
+  margin-bottom:0;
+  margin-left:auto;
+  flex-shrink:0;
+}
+
+@media(max-width:520px){
+
+  .grade-chart-toolbar{
+    align-items:flex-start;
+  }
+
+  .grade-chart-toolbar .legend{
+    gap:8px;
+  }
+
+  .grade-region-button{
+    padding:6px 8px;
+  }
+
+}
+
+/* Dernières voies  */
 
 .recent-route-row{
   grid-template-columns:28px minmax(0,1fr) 60px 85px 110px;
@@ -1438,7 +1608,7 @@ const PersonalStore = (function(){
 /* ---------- 3. ÉTAT DE L'APPLICATION ---------- */
 const state = {
   isAuthenticated: false,
-  user: {firstName: 'Samuel'},
+  user: {firstName: 'Gianna',lastName: 'Crovetto'},
   menuOpen: false,
   authView: 'login',             // login | signup | forgot
   filtersOpen: false,
@@ -1453,7 +1623,14 @@ const state = {
   prefs: PersonalStore.getPrefs(),
   modalRouteId: null,
   confirmReset: false,
-  todoFilters: { region:'all', lieu:'all', secteur:'all' },
+ todoFilters: {
+  region:'all',
+  lieu:'all',
+  secteur:'all'
+},
+
+gradeChartRegions: null,
+gradeChartRegionsOpen: false,
 };
 
 /* ---------- 4. FILTRAGE / CALCULS ---------- */
@@ -1516,6 +1693,12 @@ function groupBy(routes, keyFn){
   });
   return map;
 }
+// Retourne la liste des régions distinctes, triée par ordre alphabétique
+function allRegions(){
+  return [...new Set(
+    ROUTES.map(route => route.region)
+  )].sort((a,b)=>a.localeCompare(b));
+}
 
 // Calcule un maximum "arrondi" et un pas d'échelle lisible pour un axe numérique
 // (ex: max réel 139 -> échelle 0/20/40/.../140), utilisé pour les graphiques.
@@ -1567,6 +1750,16 @@ function applyTheme(){ //Jour / Nuit / Système
 }
 function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function userInitials(){
+  const first = state.user.firstName?.trim() || '';
+  const last = state.user.lastName?.trim() || '';
+
+  return (
+    first.charAt(0) +
+    last.charAt(0)
+  ).toUpperCase();
 }
 function starString(n, max=3){
   n = n||0;
@@ -2234,6 +2427,12 @@ function topnavHtml(){
         <span>Les 8 Valaisans</span>
       </div>
 
+      <div class="header-profile">
+        <button class="profile-button" id="profileButton">
+          ${escapeHtml(userInitials())}
+        </button>
+      </div>
+
     </div>
 
     <div
@@ -2284,68 +2483,8 @@ function accueilHtml(){
       <h1>Bonjour ${escapeHtml(state.user.firstName)} !</h1>
       <p>Voici un aperçu de ta progression</p>
     </div>
-    <div class="filters-toolbar">
-
-      <button class="filters-button" id="filtersButton">
-        ${iconGear()}
-        <span>Filtres</span>
-
-        ${filterCount > 0 ? `
-          <span class="filters-count">${filterCount}</span>
-        ` : ''}
-      </button>
-
-      <div class="filter-chips">
-        ${filterChipsHtml()}
-      </div>
-
-    </div>
-
-    ${state.filtersOpen ? `
-      <div class="filters-panel">
-
-        <div class="filters-panel-header">
-          <span>Filtres</span>
-          <button id="closeFilters" class="filters-close">×</button>
-        </div>
-
-        <div class="filter-field">
-          <label>Recherche</label>
-
-          <input
-            type="text"
-            id="searchInput"
-            placeholder="Rechercher une voie, un lieu, un secteur…"
-            value="${escapeHtml(state.filters.search)}">
-        </div>
-
-        <div class="filter-field">
-          <label>Cotation</label>
-          ${gradeSliderHtml()}
-        </div>
-
-        <div class="filters-options">
-
-          <label class="toggle" id="toggleVariants">
-            <div class="switch ${!state.prefs.includeVariants?'on':''}">
-              <div class="knob"></div>
-            </div>
-            Exclure les variantes
-          </label>
-
-          <label class="toggle" id="toggleNR">
-            <div class="switch ${!state.prefs.includeNR?'on':''}">
-              <div class="knob"></div>
-            </div>
-            Exclure les NR
-          </label>
-
-        </div>
-
-      </div>
-    ` : ''}
-
-      
+    
+  
       <div class="stats-grid-wrap">
         <div class="stats-grid dashboard-stats-four">
 
@@ -2359,6 +2498,57 @@ function accueilHtml(){
 
         </div>
       </div>
+
+      <div class="filters-toolbar">
+
+        <button class="filters-button" id="filtersButton">
+          ${iconGear()}
+          <span>Filtres</span>
+
+          ${filterCount > 0 ? `
+            <span class="filters-count">${filterCount}</span>
+          ` : ''}
+        </button>
+
+        <div class="filter-chips">
+          ${filterChipsHtml()}
+        </div>
+
+      </div>
+
+      ${state.filtersOpen ? `
+        <div class="filters-panel">
+
+          <div class="filters-panel-header">
+            <span>Filtres</span>
+            <button id="closeFilters" class="filters-close">×</button>
+          </div>
+
+          <div class="filter-field">
+            <label>Cotation</label>
+            ${gradeSliderHtml()}
+          </div>
+
+          <div class="filters-options">
+
+            <label class="toggle" id="toggleVariants">
+              <div class="switch ${!state.prefs.includeVariants?'on':''}">
+                <div class="knob"></div>
+              </div>
+              Exclure les variantes
+            </label>
+
+            <label class="toggle" id="toggleNR">
+              <div class="switch ${!state.prefs.includeNR?'on':''}">
+                <div class="knob"></div>
+              </div>
+              Exclure les NR
+            </label>
+
+          </div>
+
+        </div>
+      ` : ''}
 
     <div class="grid cols-2">
       <div class="card grade-progress-card">
@@ -2493,26 +2683,102 @@ function todoPreviewHtml(){
 }
 
 function gradeChartHtml(routes){
+
+  const regions = allRegions();
+
+  const selectedRegions =
+    state.gradeChartRegions === null
+      ? regions
+      : state.gradeChartRegions;
+
+  const chartRoutes = routes.filter(route =>
+    selectedRegions.includes(route.region)
+  );
+
   const grades = GRADE_ORDER.slice();
-  if(state.prefs.includeNR) grades.push('NR');
+
   const byGrade = grades.map(g=>{
-    const rs = g==='NR' ? routes.filter(r=>!isRatedGrade(r.cotation)) : routes.filter(r=>r.cotation===g);
-    return { g, ...computeStats(rs) };
+
+    const rs = chartRoutes.filter(route =>
+      route.cotation === g
+    );
+
+    return {
+      g,
+      ...computeStats(rs)
+    };
   });
+
   const maxTotal = Math.max(1, ...byGrade.map(x=>x.total));
 
-  const tickCount = 5;
-  const ticks = Array.from(
-    {length: tickCount + 1},
-    (_, i) => Math.round((maxTotal * i) / tickCount)
-  );
+    const tickCount = 5;
+    const ticks = Array.from(
+      {length: tickCount + 1},
+      (_, i) => Math.round((maxTotal * i) / tickCount)
+    );
 
   const ticksDesc = ticks.slice().reverse();
   return `
-  <div class="legend">
-    <span><i class="sw done"></i>Faites</span>
-    <span><i class="sw todo"></i>À faire</span>
-    <span><i class="sw other"></i>Restantes</span>
+
+  <div class="grade-chart-toolbar">
+
+    <div class="legend">
+      <span><i class="sw done"></i> Faites</span>
+      <span><i class="sw todo"></i> À faire</span>
+      <span><i class="sw other"></i> Restantes</span>
+    </div>
+
+    <div class="grade-region-dropdown">
+
+      <button
+        class="grade-region-button"
+        id="gradeRegionButton">
+
+        <span>Régions</span>
+
+        <span class="grade-region-count">
+          ${selectedRegions.length}/${regions.length}
+        </span>
+
+        <span class="grade-region-chevron">
+          ${state.gradeChartRegionsOpen ? '▲' : '▼'}
+        </span>
+
+      </button>
+
+      ${state.gradeChartRegionsOpen ? `
+        <div class="grade-region-menu">
+
+          <button
+            class="grade-region-select-all"
+            id="gradeRegionSelectAll">
+            Tout sélectionner
+          </button>
+
+          ${regions.map(region=>{
+
+            const active = selectedRegions.includes(region);
+
+            return `
+              <label class="grade-region-option">
+
+                <input
+                  type="checkbox"
+                  data-grade-region="${escapeHtml(region)}"
+                  ${active ? 'checked' : ''}>
+
+                <span>${escapeHtml(region)}</span>
+
+              </label>
+            `;
+
+          }).join('')}
+
+        </div>
+      ` : ''}
+
+    </div>
+
   </div>
 
   <div class="grade-chart-content">
@@ -3002,6 +3268,65 @@ function bindEvents(){
       render();
     };
   });
+
+const gradeRegionButton =
+  document.getElementById('gradeRegionButton');
+
+if(gradeRegionButton){
+
+  gradeRegionButton.onclick = ()=>{
+
+    state.gradeChartRegionsOpen =
+      !state.gradeChartRegionsOpen;
+
+    render();
+  };
+
+}
+
+document.querySelectorAll('[data-grade-region]').forEach(input=>{
+
+  input.onchange = ()=>{
+
+    const region = input.dataset.gradeRegion;
+    const regions = allRegions();
+
+    if(state.gradeChartRegions === null){
+      state.gradeChartRegions = [...regions];
+    }
+
+    if(input.checked){
+
+      if(!state.gradeChartRegions.includes(region)){
+        state.gradeChartRegions.push(region);
+      }
+
+    } else {
+
+      state.gradeChartRegions =
+        state.gradeChartRegions.filter(r =>
+          r !== region
+        );
+    }
+
+    render();
+  };
+
+});
+
+const gradeRegionSelectAll =
+  document.getElementById('gradeRegionSelectAll');
+
+if(gradeRegionSelectAll){
+
+  gradeRegionSelectAll.onclick = ()=>{
+
+    state.gradeChartRegions = null;
+
+    render();
+  };
+
+}
 
   const loginForm = document.getElementById('loginForm');
 
