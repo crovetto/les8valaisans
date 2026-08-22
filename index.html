@@ -956,8 +956,41 @@ select:focus{outline:1px solid var(--accent);}
 }
 
 input[type="range"].grade-range{
-  position:absolute;left:0;top:7px;width:100%;height:26px;margin:0;padding:0;
-  -webkit-appearance:none;appearance:none;background:transparent;pointer-events:none;
+  position:absolute;
+  left:0;
+  top:2px;
+  width:100%;
+  height:36px;
+  margin:0;
+  padding:0;
+
+  -webkit-appearance:none;
+  appearance:none;
+
+  background:transparent;
+  pointer-events:none;
+
+  touch-action:none;
+}
+@media(max-width:640px){
+
+  :root{
+    --grade-thumb-size:32px;
+  }
+
+  input[type="range"].grade-range::-webkit-slider-thumb{
+    width:32px;
+    height:32px;
+  }
+
+  input[type="range"].grade-range::-moz-range-thumb{
+    width:32px;
+    height:32px;
+  }
+
+  .grade-slider-wrap{
+    height:46px;
+  }
 }
 input[type="range"].grade-range::-webkit-slider-runnable-track{
   -webkit-appearance:none;background:transparent;height:26px;
@@ -4224,7 +4257,11 @@ if(gradeSliderMin && gradeSliderMax && gradeSliderWrap){
   function sliderValueFromPointer(clientX){
     const rect = gradeSliderWrap.getBoundingClientRect();
 
-    const thumbRadius = 13;
+    const thumbRadius =
+      parseFloat(
+        getComputedStyle(document.documentElement)
+          .getPropertyValue('--grade-thumb-size')
+      ) / 2;
     const usableLeft = rect.left + thumbRadius;
     const usableRight = rect.right - thumbRadius;
     const usableWidth = usableRight - usableLeft;
