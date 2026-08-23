@@ -2132,8 +2132,24 @@ input[type="range"].grade-range:focus::-moz-range-thumb{box-shadow:0 0 0 3px var
 </head>
 <body>
 <div id="app"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script>
+
+const SUPABASE_URL =
+  'https://bgbuweuqjqhghrxdriln.supabase.co';
+
+const SUPABASE_KEY =
+  'sb_publishable_Eoxj1ob-6tbWu00ARSQV6Q_qKELX1Dq';
+
+const supabaseClient =
+  supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+  );
   
+
 /* =========================================================
    LES 8 VALAISANS — logique de l'application
    ========================================================= */
