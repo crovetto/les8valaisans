@@ -2644,6 +2644,7 @@ newRouteNewLieu: false,
 newRouteNewSecteur: false,
 newRouteRegion: '',
 newRouteLieu: '',
+newRouteSecteur: '',
 cotationsRegions: null,
 cotationsRegionsOpen: false,
 };
@@ -3865,8 +3866,12 @@ function addRouteHtml(){
                   </option>
 
                   ${secteurs.map(secteur=>`
-                    <option value="${escapeHtml(secteur)}">
+                    <option
+                      value="${escapeHtml(secteur)}"
+                      ${state.newRouteSecteur === secteur && !state.newRouteNewSecteur ? 'selected' : ''}>
+
                       ${escapeHtml(secteur)}
+
                     </option>
                   `).join('')}
 
@@ -5589,6 +5594,7 @@ function bindEvents(){
           newRouteRegion.value;
 
         state.newRouteLieu = '';
+        state.newRouteSecteur = '';
         state.newRouteNewLieu = false;
         state.newRouteNewSecteur = false;
 
@@ -5609,7 +5615,7 @@ function bindEvents(){
 
           state.newRouteNewLieu = true;
           state.newRouteLieu = '';
-
+          state.newRouteSecteur = '';
           state.newRouteNewSecteur = true;
 
         } else {
@@ -5618,7 +5624,7 @@ function bindEvents(){
 
           state.newRouteLieu =
             newRouteLieuSelect.value;
-
+          state.newRouteSecteur = '';
           state.newRouteNewSecteur = false;
         }
 
@@ -5627,20 +5633,333 @@ function bindEvents(){
 
     }
 
-const newRouteSecteurSelect =
-  document.getElementById('newRouteSecteurSelect');
+    const newRouteSecteurSelect =
+      document.getElementById('newRouteSecteurSelect');
 
-if(newRouteSecteurSelect){
+    if(newRouteSecteurSelect){
 
-  newRouteSecteurSelect.onchange = ()=>{
+      newRouteSecteurSelect.onchange = ()=>{
 
-    state.newRouteNewSecteur =
-      newRouteSecteurSelect.value === '__new__';
+        if(
+          newRouteSecteurSelect.value === '__new__'
+        ){
 
-    render();
-  };
+          state.newRouteNewSecteur = true;
+          state.newRouteSecteur = '';
 
-}
+        } else {
+
+          state.newRouteNewSecteur = false;
+
+          state.newRouteSecteur =
+            newRouteSecteurSelect.value;
+
+        }
+
+        render();
+      };
+
+    }
+
+    const addRouteButton =
+      document.getElementById('addRouteButton');
+
+    if(addRouteButton){
+
+      addRouteButton.onclick = async ()=>{
+
+        if(!state.user.canEdit){
+          return;
+        }
+
+
+        // -----------------------------
+        // Région
+        // -----------------------------
+
+        const region =
+          document
+            .getElementById('newRouteRegion')
+            ?.value
+            .trim();
+
+
+        // -----------------------------
+        // Lieu
+        // -----------------------------
+
+        let lieu = '';
+
+        if(state.newRouteNewLieu){
+
+          lieu =
+            document
+              .getElementById('newRouteLieuNew')
+              ?.value
+              .trim() || '';
+
+        } else {
+
+          lieu =
+            document
+              .getElementById('newRouteLieuSelect')
+              ?.value
+              .trim() || '';
+
+        }
+
+
+        // -----------------------------
+        // Secteur
+        // -----------------------------
+
+        let secteur = '';
+
+        if(
+          state.newRouteNewLieu ||
+          state.newRouteNewSecteur
+        ){
+
+          secteur =
+            document
+              .getElementById('newRouteSecteurNew')
+              ?.value
+              .trim() || '';
+
+        } else {
+
+          secteur =
+            document
+              .getElementById('newRouteSecteurSelect')
+              ?.value
+              .trim() || '';
+
+        }
+
+
+        // -----------------------------
+        // Nom
+        // -----------------------------
+
+        const voie =
+          document
+            .getElementById('newRouteName')
+            ?.value
+            .trim() || '';
+
+
+        // -----------------------------
+        // Cotation
+        // -----------------------------
+
+        const cotation =
+          document
+            .getElementById('newRouteGrade')
+            ?.value || '';
+
+
+        // -----------------------------
+        // Qualité
+        // -----------------------------
+
+        const qualityValue =
+          document
+            .getElementById('newRouteQuality')
+            ?.value || '';
+
+        const qualite =
+          qualityValue
+            ? parseInt(qualityValue, 10)
+            : null;
+
+
+        // -----------------------------
+        // Vérifications
+        // -----------------------------
+
+        if(!region){
+
+          alert(
+            'Sélectionne une région.'
+          );
+
+          return;
+        }
+
+        if(!lieu){
+
+          alert(
+            'Sélectionne ou crée un lieu.'
+          );
+
+          return;
+        }
+
+        if(!secteur){
+
+          alert(
+            'Sélectionne ou crée un secteur.'
+          );
+
+          return;
+        }
+
+        if(!voie){
+
+          alert(
+            'Le nom de la voie est obligatoire.'
+          );
+
+          return;
+        }
+
+        if(!cotation){
+
+          alert(
+            'Sélectionne une cotation.'
+          );
+
+          return;
+        }
+
+
+        // -----------------------------
+        // Générer le prochain ID
+        // R0572 -> R0573
+        // -----------------------------
+
+        const maxRouteNumber =
+          ROUTES.reduce(
+            (max, route)=>{
+
+              const match =
+                String(route.id)
+                  .match(/^R(\d+)$/);
+
+              if(!match){
+                return max;
+              }
+
+              return Math.max(
+                max,
+                parseInt(match[1], 10)
+              );
+
+            },
+            0
+          );
+
+
+        const newRouteId =
+          'R' +
+          String(
+            maxRouteNumber + 1
+          ).padStart(4, '0');
+
+
+        // -----------------------------
+        // Création de la voie
+        // -----------------------------
+
+        const newRoute = {
+
+          id: newRouteId,
+
+          region: region,
+
+          lieu: lieu,
+
+          secteur: secteur,
+
+          voie: voie,
+
+          cotation: cotation,
+
+          qualite: qualite,
+
+          variante:
+            state.newRouteVariant
+
+        };
+
+
+        // -----------------------------
+        // Enregistrement Supabase
+        // -----------------------------
+
+        const {
+          data,
+          error
+        } =
+          await supabaseClient
+            .from('routes')
+            .insert(newRoute)
+            .select(`
+              id,
+              region,
+              lieu,
+              secteur,
+              voie,
+              cotation,
+              qualite,
+              variante
+            `)
+            .single();
+
+
+        if(error){
+
+          console.error(
+            'Erreur ajout voie :',
+            error
+          );
+
+          alert(
+            'Impossible d’ajouter la voie.'
+          );
+
+          return;
+        }
+
+
+        // -----------------------------
+        // Ajouter aussi dans le site
+        // sans devoir refresh
+        // -----------------------------
+
+        ROUTES.push(data);
+
+        ROUTES.sort(
+          (a,b)=>
+            a.id.localeCompare(b.id)
+        );
+
+
+        // -----------------------------
+        // Réinitialiser le formulaire
+        // -----------------------------
+
+        state.newRouteVariant = false;
+
+        state.newRouteNewLieu = false;
+
+        state.newRouteNewSecteur = false;
+
+        state.newRouteRegion = '';
+
+        state.newRouteLieu = '';
+
+
+        render();
+
+
+        alert(
+          'Voie ajoutée avec succès.'
+        );
+
+      };
+
+    }
   
   const profileMenuLogout =
       document.getElementById('profileMenuLogout');
