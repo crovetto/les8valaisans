@@ -5253,7 +5253,11 @@ function bindEvents(){
         state.newRouteVariant =
           !state.newRouteVariant;
 
-        render();
+        newRouteVariantSwitch.classList.toggle(
+          'on',
+          state.newRouteVariant
+        );
+
       };
 
     }
@@ -6146,11 +6150,41 @@ if(toggleNR){
   document.querySelectorAll('[data-open-route]').forEach(el=>{
     el.onclick = () => { state.modalRouteId = el.dataset.openRoute; render(); };
   });
-  const modalOverlay = document.getElementById('modalOverlay');
-  if(modalOverlay) modalOverlay.onclick = (e)=>{ if(e.target.id==='modalOverlay'){ state.modalRouteId=null; render(); } };
-  const modalClose = document.getElementById('modalClose');
-  if(modalClose) modalClose.onclick = () => { state.modalRouteId=null; render(); };
-  
+
+  const modalOverlay =
+    document.getElementById('modalOverlay');
+
+  if(modalOverlay){
+
+    modalOverlay.onclick = (e)=>{
+
+      if(e.target.id === 'modalOverlay'){
+
+        state.modalRouteId = null;
+        state.editRouteMode = false;
+
+        render();
+      }
+
+    };
+
+  }
+
+
+  const modalClose =
+    document.getElementById('modalClose');
+
+  if(modalClose){
+
+    modalClose.onclick = ()=>{
+
+      state.modalRouteId = null;
+      state.editRouteMode = false;
+
+      render();
+    };
+
+  }
   
   const startRouteEdit =
       document.getElementById('startRouteEdit');
