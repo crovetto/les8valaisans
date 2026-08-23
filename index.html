@@ -6616,7 +6616,7 @@ if(toggleNR){
 
     if(saveRouteEdit){
 
-      saveRouteEdit.onclick = ()=>{
+      saveRouteEdit.onclick = async ()=>{
 
         if(!state.user.canEdit){
           return;
@@ -6631,18 +6631,15 @@ if(toggleNR){
           return;
         }
 
-
         const nameInput =
           document.getElementById('editRouteName');
 
         const gradeSelect =
           document.getElementById('editRouteGrade');
 
-
         if(!nameInput || !gradeSelect){
           return;
         }
-
 
         const newName =
           nameInput.value.trim();
@@ -6650,10 +6647,39 @@ if(toggleNR){
         const newGrade =
           gradeSelect.value;
 
-
         if(!newName){
 
-          alert('Le nom de la voie est obligatoire.');
+          alert(
+            'Le nom de la voie est obligatoire.'
+          );
+
+          return;
+        }
+
+
+        const { error } =
+          await supabaseClient
+            .from('routes')
+            .update({
+              voie: newName,
+              cotation: newGrade
+            })
+            .eq(
+              'id',
+              route.id
+            );
+
+
+        if(error){
+
+          console.error(
+            'Erreur modification voie :',
+            error
+          );
+
+          alert(
+            'Impossible de modifier la voie.'
+          );
 
           return;
         }
@@ -6665,7 +6691,9 @@ if(toggleNR){
         state.editRouteMode = false;
 
         render();
+
       };
+
     }
 
   document.querySelectorAll('[data-set-status]').forEach(el=>{
