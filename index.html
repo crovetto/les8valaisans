@@ -2196,6 +2196,48 @@ async function loadRoutesFromSupabase(){
 
   return true;
 }
+async function loadUserProfile(user){
+
+  const { data, error } =
+    await supabaseClient
+      .from('profiles')
+      .select(`
+        first_name,
+        last_name,
+        role
+      `)
+      .eq('user_id', user.id)
+      .single();
+
+  if(error){
+
+    console.error(
+      'Erreur chargement profil :',
+      error
+    );
+
+    return false;
+  }
+
+
+  state.user = {
+    firstName: data.first_name || '',
+    lastName: data.last_name || '',
+    email: user.email || '',
+    role: data.role || 'user',
+    canEdit:
+      data.role === 'editor' ||
+      data.role === 'admin'
+  };
+
+
+  console.log(
+    'Profil chargé :',
+    state.user
+  );
+
+  return true;
+}
 
 const GRADE_ORDER = ["8a","8a+","8b","8b+","8c","8c+","9a","9a+","9b"];
 function isRatedGrade(cotation){ return GRADE_ORDER.includes(cotation); }
@@ -2317,7 +2359,15 @@ const PersonalStore = (function(){
 /* ---------- 3. ÉTAT DE L'APPLICATION ---------- */
 const state = {
   isAuthenticated: false,
-  user: {firstName: 'Gianna',lastName: 'Crovetto',email: '',canEdit: true},
+  
+  user: {
+  firstName: '',
+  lastName: '',
+  email: '',
+  role: 'user',
+  canEdit: false
+},
+
   menuOpen: false,
   profileMenuOpen: false,        // menu de profil (avatar) ouvert
   authView: 'login',             // login | signup | forgot
@@ -5732,6 +5782,17 @@ if(loginForm){
       return;
     }
 
+    const profileLoaded = await loadUserProfile(data.user);
+
+    if(!profileLoaded){
+
+      alert(
+        'Connexion réussie, mais impossible de charger le profil.'
+      );
+
+      return;
+    }
+
     state.isAuthenticated = true;
     state.view = 'accueil';
 
@@ -6451,6 +6512,19 @@ async function initializeApp(){
       await loadRoutesFromSupabase();
 
     if(!routesLoaded){
+
+      state.isAuthenticated = false;
+      render();
+
+      return;
+    }
+
+    const profileLoaded =
+      await loadUserProfile(
+        session.user
+      );
+
+    if(!profileLoaded){
 
       state.isAuthenticated = false;
       render();
