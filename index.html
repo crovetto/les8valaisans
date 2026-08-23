@@ -1726,6 +1726,141 @@ input[type="range"].grade-range:focus::-moz-range-thumb{box-shadow:0 0 0 3px var
 
   color:var(--text-dim);
 }
+/* ---- Filtres Cotations ---- */
+.cotations-filter-divider{
+  height:1px;
+  background:var(--border);
+  margin:12px 0;
+}
+
+.cotations-filter-options{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  padding:2px 4px 4px;
+}
+
+.cotations-filter-wrap{
+  margin-bottom:14px;
+}
+
+.cotations-filter-button{
+  display:flex;
+  align-items:center;
+  gap:7px;
+
+  padding:8px 11px;
+
+  border:1px solid var(--border);
+  border-radius:9px;
+
+  background:var(--card-alt);
+  color:var(--text);
+
+  font:inherit;
+  font-size:12.5px;
+  font-weight:700;
+
+  cursor:pointer;
+}
+
+.cotations-filter-button:hover{
+  border-color:var(--accent);
+}
+
+.cotations-filter-button svg{
+  width:15px;
+  height:15px;
+}
+
+.cotations-filter-count{
+  font-size:10.5px;
+  font-weight:600;
+  color:var(--text-dim);
+}
+
+.cotations-filter-chevron{
+  margin-left:2px;
+
+  font-size:15px;
+  line-height:1;
+
+  color:var(--text-faint);
+}
+
+
+.cotations-filter-panel{
+  margin-top:8px;
+  padding:12px;
+
+  max-width:420px;
+
+  border:1px solid var(--border);
+  border-radius:10px;
+
+  background:var(--card-alt);
+}
+
+.cotations-filter-panel-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+
+  margin-bottom:9px;
+}
+
+.cotations-filter-panel-header strong{
+  font-size:12px;
+}
+
+.cotations-filter-all{
+  border:0;
+  background:transparent;
+
+  color:var(--accent);
+
+  font:inherit;
+  font-size:11px;
+  font-weight:600;
+
+  cursor:pointer;
+}
+
+.cotations-region-options{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:5px 16px;
+}
+
+.cotations-region-option{
+  display:flex;
+  align-items:center;
+  gap:8px;
+
+  padding:6px 4px;
+
+  font-size:12px;
+
+  cursor:pointer;
+}
+
+.cotations-region-option input{
+  margin:0;
+  accent-color:var(--accent);
+}
+
+@media(max-width:520px){
+
+  .cotations-region-options{
+    grid-template-columns:1fr;
+  }
+
+  .cotations-filter-panel{
+    max-width:none;
+  }
+
+}
 
 /* ---- Route list ---- */
 .route-row{
@@ -2185,7 +2320,10 @@ const state = {
 gradeChartRegions: null,
 gradeChartRegionsOpen: false,
 openRegionSector: null,
+openRegionLieu: null,
 openGrade: null,
+cotationsRegions: null,
+cotationsRegionsOpen: false,
 };
 
 /* ---------- 4. FILTRAGE / CALCULS ---------- */
@@ -2224,13 +2362,17 @@ function inScope(route){
     }
   }
 
-  if(filters.search){
+  if(filters.search && state.view !== 'regions'){
 
     const s = filters.search.toLowerCase();
 
     const hay =
-      (route.voie+' '+route.lieu+' '+route.secteur)
-      .toLowerCase();
+      (
+        route.voie + ' ' +
+        route.lieu + ' ' +
+        route.secteur + ' ' +
+        route.region
+      ).toLowerCase();
 
     if(!hay.includes(s)){
       return false;
@@ -3715,7 +3857,18 @@ function cotationRouteRowHtml(r){
 }
 function cotationsHtml(){
 
-  const routes = displayFilterStatus(scopedRoutes());
+  const availableRegions = allRegions();
+
+  const selectedRegions =
+    state.cotationsRegions === null
+      ? availableRegions
+      : state.cotationsRegions;
+
+  const routes = displayFilterStatus(
+    scopedRoutes().filter(route =>
+      selectedRegions.includes(route.region)
+    )
+  );
 
   const grades = [
     ...GRADE_ORDER,
@@ -3822,7 +3975,99 @@ function cotationsHtml(){
         <span class="dot"></span>
         Cotations
       </div>
+      <div class="cotations-filter-wrap">
 
+      <button
+        class="cotations-filter-button"
+        id="cotationsFilterButton">
+
+        ${iconGear()}
+
+        <span>Filtrer</span>
+
+        <span class="cotations-filter-count">
+          ${selectedRegions.length}/${availableRegions.length}
+        </span>
+
+        <span class="cotations-filter-chevron">
+          ${state.cotationsRegionsOpen ? '^' : '⌄'}
+        </span>
+
+      </button>
+
+      ${state.cotationsRegionsOpen ? `
+
+        <div class="cotations-filter-panel">
+
+          <div class="cotations-filter-panel-header">
+
+            <strong>Régions</strong>
+
+            <button
+              class="cotations-filter-all"
+              id="cotationsSelectAll">
+
+              ${selectedRegions.length === availableRegions.length
+                ? 'Tout désélectionner'
+                : 'Tout sélectionner'
+              }
+
+            </button>
+
+          </div>
+
+          <div class="cotations-region-options">
+
+            ${availableRegions.map(region=>`
+
+              <label class="cotations-region-option">
+
+                <input
+                  type="checkbox"
+                  data-cotations-region="${escapeHtml(region)}"
+                  ${selectedRegions.includes(region) ? 'checked' : ''}>
+
+                <span>
+                  ${escapeHtml(region)}
+                </span>
+
+              </label>
+
+            `).join('')}
+
+          </div>
+        <div class="cotations-filter-divider"></div>
+
+          <div class="cotations-filter-options">
+
+            <label class="toggle" id="toggleCotationsVariants">
+
+              <div class="switch ${!currentFilters().includeVariants ? 'on' : ''}">
+                <div class="knob"></div>
+              </div>
+
+              Exclure les variantes
+
+            </label>
+
+
+            <label class="toggle" id="toggleCotationsNR">
+
+              <div class="switch ${!currentFilters().includeNR ? 'on' : ''}">
+                <div class="knob"></div>
+              </div>
+
+              Exclure les NR
+
+            </label>
+
+          </div>
+
+        </div>
+
+      ` : ''}
+
+    </div>
       <div class="legend">
         <span><i class="sw done"></i>Faites</span>
         <span><i class="sw todo"></i>À faire</span>
@@ -3842,21 +4087,288 @@ function cotationsHtml(){
 }
 
 /* ---- Vue Régions (navigation hiérarchique) ---- */
+function regionSearchResults(search){
+
+  const q = search.trim().toLowerCase();
+
+  if(!q){
+    return null;
+  }
+
+
+  const regions = Array.from(
+    new Set(ROUTES.map(r => r.region))
+  ).filter(name =>
+    name.toLowerCase().includes(q)
+  );
+
+
+  const lieux = Array.from(
+    new Set(ROUTES.map(r => r.lieu))
+  ).filter(name =>
+    name.toLowerCase().includes(q)
+  );
+
+
+  const secteurs = Array.from(
+    new Set(ROUTES.map(r => r.secteur))
+  ).filter(name =>
+    name.toLowerCase().includes(q)
+  );
+
+
+  const voies = ROUTES.filter(r =>
+    r.voie.toLowerCase().includes(q)
+  );
+
+
+  /*
+    Priorité :
+    Région
+    puis Lieu
+    puis Secteur
+    puis Voie
+  */
+
+  if(regions.length){
+    return {
+      type:'region',
+      values:regions
+    };
+  }
+
+  if(lieux.length){
+    return {
+      type:'lieu',
+      values:lieux
+    };
+  }
+
+  if(secteurs.length){
+    return {
+      type:'secteur',
+      values:secteurs
+    };
+  }
+
+  if(voies.length){
+    return {
+      type:'voie',
+      values:voies
+    };
+  }
+
+  return {
+    type:'none',
+    values:[]
+  };
+}
+
 function regionsHtml(){
   const {region, lieu, secteur} = state.nav;
+  
   const filterBar = `
-    <div class="filter-bar">
-      <select id="statusFilterSel">
-        <option value="all" ${currentFilters().status==='all'?'selected':''}>Toutes</option>
-        <option value="done" ${currentFilters().status==='done'?'selected':''}>Faites</option>
-        <option value="todo" ${currentFilters().status==='todo'?'selected':''}>À faire</option>
-        <option value="other" ${currentFilters().status==='other'?'selected':''}>Autres</option>
-      </select>
-      <input type="text" id="searchInput2" placeholder="Rechercher une voie…" value="${escapeHtml(currentFilters().search)}">
-    </div>
-    <div style="margin-bottom:14px;">
-      ${gradeSliderHtml()}
-    </div>`;
+  <div class="filter-bar">
+    <input
+      type="text"
+      id="searchInput2"
+      placeholder="Rechercher une voie, un lieu, un secteur ou une région…"
+      value="${escapeHtml(currentFilters().search)}">
+  </div>
+
+  <div style="margin-bottom:14px;">
+    ${gradeSliderHtml()}
+  </div>`;
+
+  const search =
+      currentFilters().search.trim();
+
+    if(search){
+
+      const result =
+        regionSearchResults(search);
+
+      let resultsHtml = '';
+
+
+      if(result.type === 'region'){
+
+        resultsHtml = result.values.map(regionName => {
+
+          const routes =
+            ROUTES.filter(r =>
+              r.region === regionName
+            );
+
+          const stats =
+            computeStats(routes);
+
+          return `
+            <div
+              class="lieu-row"
+              data-goto-region="${escapeHtml(regionName)}">
+
+              <div class="lieu-name">
+                ${escapeHtml(regionName)}
+              </div>
+
+              ${pbarHtml(stats)}
+
+              <div class="lieu-total">
+                ${stats.total}
+              </div>
+
+              <div class="lieu-chev">
+                ${iconChevron()}
+              </div>
+
+            </div>
+          `;
+
+        }).join('');
+
+      }
+
+
+      else if(result.type === 'lieu'){
+
+        resultsHtml = result.values.map(lieuName => {
+
+          const routes =
+            ROUTES.filter(r =>
+              r.lieu === lieuName
+            );
+
+          const stats =
+            computeStats(routes);
+
+          const regionName =
+            routes[0]?.region || '';
+
+          return `
+            <div
+              class="lieu-row"
+              data-search-lieu="${escapeHtml(lieuName)}"
+              data-search-region="${escapeHtml(regionName)}">
+
+              <div class="lieu-name">
+                ${escapeHtml(lieuName)}
+              </div>
+
+              ${pbarHtml(stats)}
+
+              <div class="lieu-total">
+                ${stats.total}
+              </div>
+
+              <div class="lieu-chev">
+                ${iconChevron()}
+              </div>
+
+            </div>
+          `;
+
+        }).join('');
+
+      }
+
+
+      else if(result.type === 'secteur'){
+
+        resultsHtml = result.values.map(secteurName => {
+
+          const routes =
+            ROUTES.filter(r =>
+              r.secteur === secteurName
+            );
+
+          const stats =
+            computeStats(routes);
+
+          const first =
+            routes[0];
+
+          return `
+            <div
+              class="lieu-row"
+              data-search-secteur="${escapeHtml(secteurName)}"
+              data-search-lieu="${escapeHtml(first?.lieu || '')}"
+              data-search-region="${escapeHtml(first?.region || '')}">
+
+              <div class="lieu-name">
+                ${escapeHtml(secteurName)}
+              </div>
+
+              ${pbarHtml(stats)}
+
+              <div class="lieu-total">
+                ${stats.total}
+              </div>
+
+              <div class="lieu-chev">
+                ${iconChevron()}
+              </div>
+
+            </div>
+          `;
+
+        }).join('');
+
+      }
+
+
+      else if(result.type === 'voie'){
+
+        resultsHtml =
+          result.values
+            .map(routeRowHtml)
+            .join('');
+
+      }
+
+
+      return `
+        <div class="card">
+
+          <div class="card-title">
+            <span class="dot"></span>
+            Recherche
+          </div>
+
+          ${filterBar}
+
+          ${
+            result.type !== 'none'
+              ? `
+                <div
+                  style="
+                    margin-bottom:10px;
+                    font-size:11px;
+                    color:var(--text-dim);
+                    text-transform:uppercase;
+                    font-weight:700;
+                  ">
+                  ${
+                    result.type === 'region' ? 'Régions' :
+                    result.type === 'lieu' ? 'Lieux' :
+                    result.type === 'secteur' ? 'Secteurs' :
+                    'Voies'
+                  }
+                </div>
+              `
+              : ''
+          }
+
+          ${
+            resultsHtml ||
+            `<div class="empty-state">
+              Aucun résultat.
+            </div>`
+          }
+
+        </div>
+      `;
+    }
 
   if(!region){
     // Liste des régions
@@ -3917,7 +4429,9 @@ function regionsHtml(){
 
 
              return `
-              <div class="region-sector ${isOpen ? 'open' : ''}">
+              <div
+                class="region-sector ${isOpen ? 'open' : ''}"
+                id="secteur-${encodeURIComponent(key)}">
 
                 <button
                   class="region-sector-head"
@@ -3972,7 +4486,9 @@ function regionsHtml(){
             }).join('');
 
         return `
-          <div class="region-lieu-block">
+          <div
+            class="region-lieu-block"
+            id="lieu-${encodeURIComponent(lieuName)}">
 
             <div class="region-lieu-title">
               ${escapeHtml(lieuName)}
@@ -4402,9 +4918,7 @@ function bindEvents(){
       };
 
     }
-  const homeBrandButton =
-      document.getElementById('homeBrandButton');
-
+  const homeBrandButton = document.getElementById('homeBrandButton');
     if(homeBrandButton){
 
       homeBrandButton.onclick = ()=>{
@@ -4424,6 +4938,122 @@ function bindEvents(){
       };
 
     }
+
+    const cotationsFilterButton =
+      document.getElementById('cotationsFilterButton');
+
+    if(cotationsFilterButton){
+
+      cotationsFilterButton.onclick = ()=>{
+
+        state.cotationsRegionsOpen =
+          !state.cotationsRegionsOpen;
+
+        render();
+      };
+
+    }
+
+    const cotationsSelectAll =
+      document.getElementById('cotationsSelectAll');
+
+    if(cotationsSelectAll){
+
+      cotationsSelectAll.onclick = ()=>{
+
+        const all = allRegions();
+
+        const selected =
+          state.cotationsRegions === null
+            ? all
+            : state.cotationsRegions;
+
+        if(selected.length === all.length){
+
+          state.cotationsRegions = [];
+
+        } else {
+
+          state.cotationsRegions = null;
+
+        }
+
+        render();
+      };
+
+    }
+    const toggleCotationsVariants =
+        document.getElementById('toggleCotationsVariants');
+
+      if(toggleCotationsVariants){
+
+        toggleCotationsVariants.onclick = ()=>{
+
+          const filters =
+            state.filtersByView.cotations;
+
+          filters.includeVariants =
+            !filters.includeVariants;
+
+          render();
+        };
+
+      }
+
+      const toggleCotationsNR =
+        document.getElementById('toggleCotationsNR');
+
+      if(toggleCotationsNR){
+
+        toggleCotationsNR.onclick = ()=>{
+
+          const filters =
+            state.filtersByView.cotations;
+
+          filters.includeNR =
+            !filters.includeNR;
+
+          render();
+        };
+
+      }
+
+  document.querySelectorAll('[data-cotations-region]').forEach(checkbox=>{
+
+    checkbox.onchange = ()=>{
+
+      const all = allRegions();
+
+      let selected =
+        state.cotationsRegions === null
+          ? [...all]
+          : [...state.cotationsRegions];
+
+      const region =
+        checkbox.dataset.cotationsRegion;
+
+      if(checkbox.checked){
+
+        if(!selected.includes(region)){
+          selected.push(region);
+        }
+
+      } else {
+
+        selected =
+          selected.filter(r => r !== region);
+
+      }
+
+      state.cotationsRegions =
+        selected.length === all.length
+          ? null
+          : selected;
+
+      render();
+    };
+
+  });
 
   document.querySelectorAll('[data-auth-view]').forEach(el=>{
     el.onclick = () => {
@@ -4545,6 +5175,107 @@ if(gradeRegionSelectAll){
       render();
     };
   }
+
+     document.querySelectorAll('[data-search-lieu]').forEach(el=>{
+
+      el.onclick = ()=>{
+
+        const region =
+          el.dataset.searchRegion;
+
+        const lieu =
+          el.dataset.searchLieu;
+
+        state.nav = {
+          region: region,
+          lieu: null,
+          secteur: null
+        };
+
+        state.openRegionSector = null;
+        state.openRegionLieu = lieu;
+
+        currentFilters().search = '';
+
+        render();
+
+        requestAnimationFrame(()=>{
+
+          const target =
+            document.getElementById(
+              'lieu-' + encodeURIComponent(lieu)
+            );
+
+          if(target){
+
+            target.scrollIntoView({
+              behavior:'smooth',
+              block:'start'
+            });
+
+          }
+
+        });
+
+      };
+
+    });
+
+      document.querySelectorAll('[data-search-secteur]').forEach(el=>{
+
+        el.onclick = ()=>{
+
+          const region =
+            el.dataset.searchRegion;
+
+          const lieu =
+            el.dataset.searchLieu;
+
+          const secteur =
+            el.dataset.searchSecteur;
+
+
+          const key =
+            region + '||' +
+            lieu + '||' +
+            secteur;
+
+
+          state.nav = {
+            region: region,
+            lieu: null,
+            secteur: null
+          };
+
+
+          state.openRegionSector = key;
+
+          currentFilters().search = '';
+
+          render();
+
+
+          requestAnimationFrame(()=>{
+
+            const target =
+              document.getElementById(
+                'secteur-' + encodeURIComponent(key)
+              );
+
+            if(target){
+
+              target.scrollIntoView({
+                behavior:'smooth',
+                block:'start'
+              });
+
+            }
+
+          });
+
+        };
+
+      });
 
   document.querySelectorAll('[data-toggle-done]').forEach(el=>{
     el.onclick = (e) => {
@@ -4899,24 +5630,24 @@ if(toggleNR){
     };
 
   });
+
   document.querySelectorAll('[data-goto-region]').forEach(el=>{
 
-  el.onclick = ()=>{
+    el.onclick = ()=>{
 
-    state.nav = {
-      region:el.dataset.gotoRegion,
-      lieu:null,
-      secteur:null
+      state.nav = {
+        region: el.dataset.gotoRegion,
+        lieu: null,
+        secteur: null
+      };
+
+      currentFilters().search = '';
+
+      render();
     };
 
-    state.openRegionSector = null;
+  });
 
-    state.view = 'regions';
-
-    render();
-  };
-
-});
   document.querySelectorAll('[data-goto-lieu]').forEach(el=>{
     el.onclick = () => { state.nav.lieu = el.dataset.gotoLieu; state.nav.secteur = null; render(); };
   });
