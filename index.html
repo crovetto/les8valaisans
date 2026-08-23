@@ -293,7 +293,67 @@ body{
 }
 
 .header-profile{
+  position:relative;
   margin-left:auto;
+}
+
+.profile-menu{
+  position:absolute;
+  top:46px;
+  right:0;
+
+  width:200px;
+  padding:7px;
+
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:12px;
+
+  box-shadow:0 12px 32px rgba(0,0,0,.20);
+
+  z-index:100;
+}
+
+.profile-menu-name{
+  padding:9px 10px 10px;
+
+  font-size:12.5px;
+  font-weight:700;
+  color:var(--text);
+}
+
+.profile-menu-item{
+  width:100%;
+
+  padding:9px 10px;
+
+  border:0;
+  border-radius:8px;
+
+  background:transparent;
+  color:var(--text);
+
+  font:inherit;
+  font-size:12.5px;
+  text-align:left;
+
+  cursor:pointer;
+}
+
+.profile-menu-item:hover{
+  background:var(--card-alt);
+}
+
+.profile-menu-divider{
+  height:1px;
+
+  margin:5px 4px;
+
+  background:var(--border);
+}
+
+.profile-menu-logout{
+  color:var(--danger);
 }
 
 .profile-button{
@@ -1977,6 +2037,7 @@ const state = {
   isAuthenticated: false,
   user: {firstName: 'Gianna',lastName: 'Crovetto'},
   menuOpen: false,
+  profileMenuOpen: false,        // menu de profil (avatar) ouvert
   authView: 'login',             // login | signup | forgot
   filtersOpen: false,
   view: 'accueil',               // accueil | regions | todo | params
@@ -2912,9 +2973,34 @@ function topnavHtml(){
       </div>
 
       <div class="header-profile">
+
         <button class="profile-button" id="profileButton">
           ${escapeHtml(userInitials())}
         </button>
+
+        ${state.profileMenuOpen ? `
+          <div class="profile-menu">
+
+            <div class="profile-menu-name">
+              ${escapeHtml(state.user.firstName)}
+              ${escapeHtml(state.user.lastName)}
+            </div>
+
+            <button class="profile-menu-item" id="profileMenuProfile">
+              Profil
+            </button>
+
+            <div class="profile-menu-divider"></div>
+
+            <button
+              class="profile-menu-item profile-menu-logout"
+              id="profileMenuLogout">
+              Se déconnecter
+            </button>
+
+          </div>
+        ` : ''}
+
       </div>
 
     </div>
@@ -4040,6 +4126,21 @@ function bindEvents(){
       render();
     };
   }
+
+  const profileButton = document.getElementById('profileButton');
+
+  if(profileButton){
+
+    profileButton.onclick = ()=>{
+
+      state.profileMenuOpen =
+        !state.profileMenuOpen;
+
+      render();
+    };
+
+  }
+
   document.querySelectorAll('[data-auth-view]').forEach(el=>{
     el.onclick = () => {
       state.authView = el.dataset.authView;
