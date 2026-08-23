@@ -366,6 +366,27 @@ body{
   margin-left:auto;
 }
 
+.header-brand-button{
+  border:0;
+  background:transparent;
+  color:var(--text);
+
+  font:inherit;
+
+  cursor:pointer;
+
+  padding:0;
+  border-radius:0;
+}
+
+.header-brand-button:hover,
+.header-brand-button:focus,
+.header-brand-button:active{
+  background:transparent;
+  color:var(--text);
+  outline:none;
+}
+
 .profile-menu{
   position:absolute;
   top:46px;
@@ -3038,10 +3059,14 @@ function topnavHtml(){
 
       </button>
 
-      <div class="header-brand">
+      <button
+        class="header-brand header-brand-button"
+        id="homeBrandButton">
+
         ${iconMountain()}
         <span>Les 8 Valaisans</span>
-      </div>
+
+      </button>
 
       <div class="header-profile">
 
@@ -4372,6 +4397,28 @@ function bindEvents(){
         }
 
         state.user.email = email;
+
+        render();
+      };
+
+    }
+  const homeBrandButton =
+      document.getElementById('homeBrandButton');
+
+    if(homeBrandButton){
+
+      homeBrandButton.onclick = ()=>{
+
+        state.view = 'accueil';
+
+        state.menuOpen = false;
+        state.profileMenuOpen = false;
+
+        state.nav = {
+          region:null,
+          lieu:null,
+          secteur:null
+        };
 
         render();
       };
