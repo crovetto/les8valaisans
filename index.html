@@ -5633,19 +5633,62 @@ if(gradeRegionSelectAll){
 
 }
 
-  const loginForm = document.getElementById('loginForm');
+const loginForm =
+  document.getElementById('loginForm');
 
-  if(loginForm){
-    loginForm.onsubmit = (e) => {
-      e.preventDefault();
+if(loginForm){
 
-      // Connexion simulée pour le moment
-      state.isAuthenticated = true;
-      state.view = 'accueil';
+  loginForm.onsubmit = async (e)=>{
 
-      render();
-    };
-  }
+    e.preventDefault();
+
+    const email =
+      document.getElementById('loginEmail')
+        .value
+        .trim();
+
+    const password =
+      document.getElementById('loginPassword')
+        .value;
+
+
+    const { data, error } =
+      await supabaseClient.auth.signInWithPassword({
+        email: email,
+        password: password
+      });
+
+
+    if(error){
+
+      console.error(
+        'Erreur de connexion :',
+        error
+      );
+
+      alert(
+        'Connexion impossible : ' +
+        error.message
+      );
+
+      return;
+    }
+
+
+    console.log(
+      'Connexion réussie :',
+      data.user
+    );
+
+
+    state.isAuthenticated = true;
+    state.view = 'accueil';
+
+    render();
+
+  };
+
+}
 
   const signupForm = document.getElementById('signupForm');
 
