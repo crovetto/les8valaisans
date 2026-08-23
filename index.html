@@ -2262,7 +2262,7 @@ const PersonalStore = (function(){
 /* ---------- 3. ÉTAT DE L'APPLICATION ---------- */
 const state = {
   isAuthenticated: false,
-  user: {firstName: 'Gianna',lastName: 'Crovetto',email: ''},
+  user: {firstName: 'Gianna',lastName: 'Crovetto',email: '',canEdit: true},
   menuOpen: false,
   profileMenuOpen: false,        // menu de profil (avatar) ouvert
   authView: 'login',             // login | signup | forgot
@@ -2322,6 +2322,11 @@ gradeChartRegionsOpen: false,
 openRegionSector: null,
 openRegionLieu: null,
 openGrade: null,
+newRouteVariant: false,
+newRouteNewLieu: false,
+newRouteNewSecteur: false,
+newRouteRegion: '',
+newRouteLieu: '',
 cotationsRegions: null,
 cotationsRegionsOpen: false,
 };
@@ -3176,12 +3181,22 @@ function authHtml(){
 
 function topnavHtml(){
   const tabs = [
-  {id:'accueil', label:'Accueil', icon:iconHome()},
-  {id:'regions', label:'Régions', icon:iconLayers()},
-  {id:'cotations', label:'Cotations', icon:iconGrades()},
-  {id:'todo', label:'À faire', icon:iconCheck()},
-  {id:'params', label:'Paramètres', icon:iconGear()},
-];
+    {id:'accueil', label:'Accueil', icon:iconHome()},
+    {id:'regions', label:'Régions', icon:iconLayers()},
+    {id:'cotations', label:'Cotations', icon:iconGrades()},
+    {id:'todo', label:'À faire', icon:iconCheck()},
+
+    ...(state.user.canEdit
+      ? [{
+          id:'addRoute',
+          label:'Ajouter une voie',
+          icon:iconPlus()
+        }]
+      : []
+    ),
+
+    {id:'params', label:'Paramètres', icon:iconGear()},
+  ];
 
   return `
     <div class="app-header">
@@ -3279,6 +3294,7 @@ function viewHtml(){
   if(state.view === 'todo') return todoHtml();
   if(state.view === 'params') return paramsHtml();
   if(state.view === 'profile') return profileHtml();
+  if(state.view === 'addRoute') return addRouteHtml();
   return '';
 }
 
@@ -3372,6 +3388,281 @@ function profileHtml(){
 }
 
 /* ---- Vue Accueil ---- */
+function addRouteHtml(){
+
+  if(!state.user.canEdit){
+
+    return `
+      <div class="card">
+        <div class="empty-state">
+          Vous n’avez pas les droits nécessaires pour ajouter une voie.
+        </div>
+      </div>
+    `;
+  }
+
+
+  const regions = allRegions();
+
+
+  const lieux =
+    state.newRouteRegion
+      ? [...new Set(
+          ROUTES
+            .filter(r => r.region === state.newRouteRegion)
+            .map(r => r.lieu)
+        )].sort((a,b)=>a.localeCompare(b))
+      : [];
+
+
+  const secteurs =
+    state.newRouteRegion && state.newRouteLieu
+      ? [...new Set(
+          ROUTES
+            .filter(r =>
+              r.region === state.newRouteRegion &&
+              r.lieu === state.newRouteLieu
+            )
+            .map(r => r.secteur)
+        )].sort((a,b)=>a.localeCompare(b))
+      : [];
+
+
+  return `
+    <div class="profile-page">
+
+      <div class="profile-page-header">
+
+        <div>
+          <h1>Ajouter une voie</h1>
+
+          <div class="profile-page-subtitle">
+            Ajouter une voie à la base de données
+          </div>
+        </div>
+
+      </div>
+
+
+      <div class="card">
+
+        <div class="card-title">
+          <span class="dot"></span>
+          Informations de la voie
+        </div>
+
+
+
+        <div class="profile-field">
+
+          <label>
+            Région
+          </label>
+
+          <select id="newRouteRegion">
+
+            <option value="">
+              Sélectionner une région
+            </option>
+
+            ${regions.map(region=>`
+              <option
+                value="${escapeHtml(region)}"
+                ${state.newRouteRegion === region ? 'selected' : ''}>
+
+                ${escapeHtml(region)}
+
+              </option>
+            `).join('')}
+
+          </select>
+
+        </div>
+
+
+        <div class="profile-field">
+
+          <label>
+            Lieu
+          </label>
+
+          <select
+            id="newRouteLieuSelect"
+            ${!state.newRouteRegion ? 'disabled' : ''}>
+
+            <option value="">
+              Sélectionner un lieu
+            </option>
+
+            ${lieux.map(lieu=>`
+              <option
+                value="${escapeHtml(lieu)}"
+                ${state.newRouteLieu === lieu && !state.newRouteNewLieu ? 'selected' : ''}>
+
+                ${escapeHtml(lieu)}
+
+              </option>
+            `).join('')}
+
+            <option
+              value="__new__"
+              ${state.newRouteNewLieu ? 'selected' : ''}>
+              + Créer un nouveau lieu
+            </option>
+
+          </select>
+
+          ${state.newRouteNewLieu ? `
+            <input
+              type="text"
+              id="newRouteLieuNew"
+              placeholder="Nom du nouveau lieu"
+              style="width:100%; margin-top:8px;">
+          ` : ''}
+
+        </div>
+
+
+        <div class="profile-field">
+
+          <label>
+            Secteur
+          </label>
+
+          ${
+            state.newRouteNewLieu
+              ? `
+                <input
+                  type="text"
+                  id="newRouteSecteurNew"
+                  placeholder="Nom du nouveau secteur"
+                  style="width:100%;">
+              `
+              : `
+                <select
+                  id="newRouteSecteurSelect"
+                  ${!state.newRouteLieu ? 'disabled' : ''}>
+
+                  <option value="">
+                    Sélectionner un secteur
+                  </option>
+
+                  ${secteurs.map(secteur=>`
+                    <option value="${escapeHtml(secteur)}">
+                      ${escapeHtml(secteur)}
+                    </option>
+                  `).join('')}
+
+                  <option
+                    value="__new__"
+                    ${state.newRouteNewSecteur ? 'selected' : ''}>
+                    + Créer un nouveau secteur
+                  </option>
+
+                </select>
+
+                ${state.newRouteNewSecteur ? `
+                  <input
+                    type="text"
+                    id="newRouteSecteurNew"
+                    placeholder="Nom du nouveau secteur"
+                    style="width:100%; margin-top:8px;">
+                ` : ''}
+              `
+          }
+
+        </div>
+
+        <div class="profile-field">
+
+          <label>
+            Nom de la voie
+          </label>
+
+          <input
+            type="text"
+            id="newRouteName"
+            placeholder="Nom de la voie">
+
+        </div>
+
+
+        <div class="profile-field">
+
+          <label>
+            Cotation
+          </label>
+
+          <select id="newRouteGrade">
+
+            <option value="">Sélectionner</option>
+            <option value="8a">8a</option>
+            <option value="8a+">8a+</option>
+            <option value="8b">8b</option>
+            <option value="8b+">8b+</option>
+            <option value="8c">8c</option>
+            <option value="8c+">8c+</option>
+            <option value="9a">9a</option>
+            <option value="9a+">9a+</option>
+            <option value="9b">9b</option>
+            <option value="NR">NR</option>
+
+          </select>
+
+        </div>
+
+
+        <div class="profile-field">
+
+          <label>
+            Qualité topo
+          </label>
+
+          <select id="newRouteQuality">
+
+            <option value="">Non renseignée</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+
+          </select>
+
+        </div>
+
+
+        <div class="profile-field">
+
+          <label class="toggle">
+
+            <div
+              class="switch ${state.newRouteVariant ? 'on' : ''}"
+              id="newRouteVariantSwitch">
+
+              <div class="knob"></div>
+
+            </div>
+
+            Variante
+
+          </label>
+
+        </div>
+
+
+        <button
+          class="btn"
+          id="addRouteButton">
+
+          Ajouter la voie
+
+        </button>
+
+      </div>
+
+    </div>
+  `;
+}
+
 function accueilHtml(){
   const routes = scopedRoutes();
   const stats = computeStats(routes);
@@ -4784,7 +5075,17 @@ function iconGrades(){
     </svg>
   `;
 }
-
+function iconPlus(){
+  return `
+    <svg viewBox="0 0 24 24" fill="none">
+      <path
+        d="M12 5v14M5 12h14"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"/>
+    </svg>
+  `;
+}
 // Togglerapide du statut au clic sur l'indicateur, sans ouvrir la modal
 function toggleDoneStatus(id){
   const current = PersonalStore.getRoute(id).status;
@@ -4842,7 +5143,85 @@ function bindEvents(){
     };
 
   }
+    const newRouteVariantSwitch =
+      document.getElementById('newRouteVariantSwitch');
 
+    if(newRouteVariantSwitch){
+
+      newRouteVariantSwitch.onclick = ()=>{
+
+        state.newRouteVariant =
+          !state.newRouteVariant;
+
+        render();
+      };
+
+    }
+
+    const newRouteRegion =
+      document.getElementById('newRouteRegion');
+
+    if(newRouteRegion){
+
+      newRouteRegion.onchange = ()=>{
+
+        state.newRouteRegion =
+          newRouteRegion.value;
+
+        state.newRouteLieu = '';
+        state.newRouteNewLieu = false;
+        state.newRouteNewSecteur = false;
+
+        render();
+      };
+
+    }
+
+
+    const newRouteLieuSelect =
+      document.getElementById('newRouteLieuSelect');
+
+    if(newRouteLieuSelect){
+
+      newRouteLieuSelect.onchange = ()=>{
+
+        if(newRouteLieuSelect.value === '__new__'){
+
+          state.newRouteNewLieu = true;
+          state.newRouteLieu = '';
+
+          state.newRouteNewSecteur = true;
+
+        } else {
+
+          state.newRouteNewLieu = false;
+
+          state.newRouteLieu =
+            newRouteLieuSelect.value;
+
+          state.newRouteNewSecteur = false;
+        }
+
+        render();
+      };
+
+    }
+
+const newRouteSecteurSelect =
+  document.getElementById('newRouteSecteurSelect');
+
+if(newRouteSecteurSelect){
+
+  newRouteSecteurSelect.onchange = ()=>{
+
+    state.newRouteNewSecteur =
+      newRouteSecteurSelect.value === '__new__';
+
+    render();
+  };
+
+}
+  
   const profileMenuLogout =
       document.getElementById('profileMenuLogout');
 
