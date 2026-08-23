@@ -5943,11 +5943,15 @@ if(gradeSliderMin && gradeSliderMax && gradeSliderWrap){
     gradeSliderWrap.setPointerCapture(e.pointerId);
   });
 
-  gradeSliderWrap.addEventListener('pointermove', (e)=>{
+    gradeSliderWrap.addEventListener('pointermove', (e)=>{
 
-    if(!overlapDrag) return;
+      if(!overlapDrag) return;
 
-    const deltaX = e.clientX - startX;
+      if(e.pointerType === 'touch'){
+        e.preventDefault();
+      }
+
+      const deltaX = e.clientX - startX;
 
     // Petite zone morte pour éviter qu'un micro-mouvement
     // choisisse accidentellement une direction
