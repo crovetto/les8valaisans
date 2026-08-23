@@ -2238,6 +2238,41 @@ async function loadUserProfile(user){
 
   return true;
 }
+async function loadUserRoutes(){
+
+  const { data, error } =
+    await supabaseClient
+      .from('user_routes')
+      .select(`
+        route_id,
+        status,
+        rating,
+        completed_at
+      `);
+
+
+  if(error){
+
+    console.error(
+      'Erreur chargement user_routes :',
+      error
+    );
+
+    return false;
+  }
+
+
+  PersonalStore.load(data);
+
+
+  console.log(
+    'Progression chargée :',
+    data.length
+  );
+
+
+  return true;
+}
 
 const GRADE_ORDER = ["8a","8a+","8b","8b+","8c","8c+","9a","9a+","9b"];
 function isRatedGrade(cotation){ return GRADE_ORDER.includes(cotation); }
@@ -2245,40 +2280,136 @@ function gradeIndex(cotation){ return GRADE_ORDER.indexOf(cotation); }
 function gradePositionPct(index){const lastIdx = GRADE_ORDER.length - 1; return lastIdx === 0 ? 0 : (index / lastIdx) * 100;}
 
 /* ---------- 2. STORE DES DONNÉES PERSONNELLES ----------
-   Séparé de l'affichage : aujourd'hui backé par localStorage,
+   Séparé de l'affichage : backend Supabase pour les données persistantes, localStorage pour les préférences.
    remplaçable demain par un appel Supabase sans toucher au reste. */
 const PersonalStore = (function(){
-  const KEY_DATA = 'v8v_personal_v1';
+
+  let data = {};
+
   const KEY_PREFS = 'v8v_prefs_v1';
 
+
   function safeParse(raw, fallback){
-    try{ const v = JSON.parse(raw); return v && typeof v === 'object' ? v : fallback; }
-    catch(e){ return fallback; }
+    try{
+      const v = JSON.parse(raw);
+      return v && typeof v === 'object'
+        ? v
+        : fallback;
+    }
+    catch(e){
+      return fallback;
+    }
   }
 
-  function readData(){
-    return safeParse(localStorage.getItem(KEY_DATA), {});
-  }
-  function writeData(data){
-    localStorage.setItem(KEY_DATA, JSON.stringify(data));
-  }
+
   function readPrefs(){
+
     return Object.assign(
       {
         includeVariants:true,
         includeNR:true,
         theme:'system'
       },
-      safeParse(localStorage.getItem(KEY_PREFS), {})
+      safeParse(
+        localStorage.getItem(KEY_PREFS),
+        {}
+      )
     );
-  }
-  function writePrefs(prefs){
-    localStorage.setItem(KEY_PREFS, JSON.stringify(prefs));
+
   }
 
+
+  function writePrefs(prefs){
+
+    localStorage.setItem(
+      KEY_PREFS,
+      JSON.stringify(prefs)
+    );
+
+  }
+
+
+  async function persistRoute(id){
+
+    const {
+      data: { user }
+    } =
+      await supabaseClient.auth.getUser();
+
+    if(!user){
+      return;
+    }
+
+
+    const entry = data[id];
+
+
+    if(!entry){
+
+      const { error } =
+        await supabaseClient
+          .from('user_routes')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('route_id', id);
+
+      if(error){
+        console.error(
+          'Erreur suppression user_routes :',
+          error
+        );
+      }
+
+      return;
+    }
+
+
+    const { error } =
+      await supabaseClient
+        .from('user_routes')
+        .upsert({
+          user_id: user.id,
+          route_id: id,
+          status: entry.status,
+          rating: entry.rating,
+          completed_at: entry.completedAt,
+          updated_at:
+            new Date().toISOString()
+        });
+
+
+    if(error){
+
+      console.error(
+        'Erreur sauvegarde user_routes :',
+        error
+      );
+
+    }
+
+  }
+
+
   return {
+
+    load(rows){
+
+      data = {};
+
+      rows.forEach(row=>{
+
+        data[row.route_id] = {
+          status: row.status,
+          rating: row.rating,
+          completedAt: row.completed_at
+        };
+
+      });
+
+    },
+
+
     getRoute(id){
-      const data = readData();
 
       return Object.assign(
         {
@@ -2288,72 +2419,152 @@ const PersonalStore = (function(){
         },
         data[id] || {}
       );
+
     },
+
+
     setStatus(id, status){
-      const data = readData();
 
-      const entry = data[id] || {
-        status:'none',
-        rating:null,
-        completedAt:null
-      };
+      const entry =
+        data[id] || {
+          status:'none',
+          rating:null,
+          completedAt:null
+        };
 
-      const previousStatus = entry.status;
+      const previousStatus =
+        entry.status;
 
       entry.status = status;
 
+
       if(status === 'done'){
-        // On attribue aujourd'hui uniquement au moment
-        // où la voie devient "faite".
-        if(previousStatus !== 'done' || !entry.completedAt){
-          entry.completedAt = todayISO();
+
+        if(
+          previousStatus !== 'done' ||
+          !entry.completedAt
+        ){
+          entry.completedAt =
+            todayISO();
         }
+
       } else {
+
         entry.rating = null;
         entry.completedAt = null;
+
       }
+
 
       if(
         status === 'none' &&
         entry.rating == null &&
         entry.completedAt == null
       ){
+
         delete data[id];
+
       } else {
+
         data[id] = entry;
+
       }
 
-      writeData(data);
+
+      persistRoute(id);
+
     },
+
+
     setRating(id, rating){
-      const data = readData();
+
       const entry = data[id];
-      if(!entry || entry.status !== 'done') return; // note perso uniquement si "fait"
+
+      if(
+        !entry ||
+        entry.status !== 'done'
+      ){
+        return;
+      }
+
       entry.rating = rating;
-      data[id] = entry;
-      writeData(data);
+
+      persistRoute(id);
+
     },
+
+
     setCompletedAt(id, date){
-      const data = readData();
+
       const entry = data[id];
 
-      if(!entry || entry.status !== 'done') return;
+      if(
+        !entry ||
+        entry.status !== 'done'
+      ){
+        return;
+      }
 
-      entry.completedAt = date || null;
-      data[id] = entry;
+      entry.completedAt =
+        date || null;
 
-      writeData(data);
+      persistRoute(id);
+
     },
-    getPrefs(){ return readPrefs(); },
+
+
+    getPrefs(){
+
+      return readPrefs();
+
+    },
+
+
     setPref(key, value){
-      const prefs = readPrefs();
+
+      const prefs =
+        readPrefs();
+
       prefs[key] = value;
+
       writePrefs(prefs);
+
     },
-    resetAll(){
-      localStorage.removeItem(KEY_DATA);
+
+
+    async resetAll(){
+
+      const {
+        data: { user }
+      } =
+        await supabaseClient.auth.getUser();
+
+      if(!user){
+        return;
+      }
+
+      const { error } =
+        await supabaseClient
+          .from('user_routes')
+          .delete()
+          .eq('user_id', user.id);
+
+      if(error){
+
+        console.error(
+          'Erreur reset user_routes :',
+          error
+        );
+
+        return;
+      }
+
+      data = {};
+
     }
+
   };
+
 })();
 
 /* ---------- 3. ÉTAT DE L'APPLICATION ---------- */
@@ -5793,6 +6004,18 @@ if(loginForm){
       return;
     }
 
+    const personalLoaded =
+      await loadUserRoutes();
+
+    if(!personalLoaded){
+
+      alert(
+        'Connexion réussie, mais impossible de charger la progression.'
+      );
+
+      return;
+    }
+
     state.isAuthenticated = true;
     state.view = 'accueil';
 
@@ -6477,9 +6700,12 @@ if(toggleNR){
   const cancelResetBtn = document.getElementById('cancelResetBtn');
   if(cancelResetBtn) cancelResetBtn.onclick = () => { state.confirmReset = false; render(); };
   const confirmResetBtn = document.getElementById('confirmResetBtn');
-  if(confirmResetBtn) confirmResetBtn.onclick = () => {
-    PersonalStore.resetAll();
+  if(confirmResetBtn) confirmResetBtn.onclick = async () => {
+
+    await PersonalStore.resetAll();
+
     state.confirmReset = false;
+
     render();
   };
 }
@@ -6525,6 +6751,17 @@ async function initializeApp(){
       );
 
     if(!profileLoaded){
+
+      state.isAuthenticated = false;
+      render();
+
+      return;
+    }
+
+    const personalLoaded =
+      await loadUserRoutes();
+
+    if(!personalLoaded){
 
       state.isAuthenticated = false;
       render();
