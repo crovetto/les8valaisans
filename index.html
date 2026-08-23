@@ -2310,6 +2310,7 @@ const state = {
 },
   prefs: PersonalStore.getPrefs(),
   modalRouteId: null,
+  editRouteMode: false,
   confirmReset: false,
  todoFilters: {
   region:'all',
@@ -5008,14 +5009,74 @@ function modalHtml(){
   const r = ROUTES.find(x=>x.id===state.modalRouteId);
   if(!r) return '';
   const p = personalOf(r);
+  const editMode =
+  state.user.canEdit &&
+  state.editRouteMode;
   return `
     <div class="modal-overlay" id="modalOverlay">
       <div class="modal">
         <button class="modal-close" id="modalClose">✕</button>
-        <div class="modal-title">${escapeHtml(r.voie)}</div>
+        ${editMode ? `
+
+          <div class="profile-field">
+            <label>Nom de la voie</label>
+
+            <input
+              type="text"
+              id="editRouteName"
+              value="${escapeHtml(r.voie)}">
+          </div>
+
+        ` : `
+
+          <div class="modal-title">
+            ${escapeHtml(r.voie)}
+          </div>
+
+        `}
         <div class="modal-crumbs">${escapeHtml(r.region)} › ${escapeHtml(r.lieu)} › ${escapeHtml(r.secteur)}${r.variante ? ' · <span style="color:var(--accent);">Variante</span>' : ''}</div>
         <div class="modal-facts">
-          <div><div class="modal-fact-lbl">Cotation</div><div class="modal-fact-val">${escapeHtml(r.cotation)}</div></div>
+          <div>
+
+            <div class="modal-fact-lbl">
+              Cotation
+            </div>
+
+            ${editMode ? `
+
+              <select id="editRouteGrade">
+
+                <option value="8a" ${r.cotation === '8a' ? 'selected' : ''}>8a</option>
+                <option value="8a+" ${r.cotation === '8a+' ? 'selected' : ''}>8a+</option>
+
+                <option value="8b" ${r.cotation === '8b' ? 'selected' : ''}>8b</option>
+                <option value="8b+" ${r.cotation === '8b+' ? 'selected' : ''}>8b+</option>
+
+                <option value="8c" ${r.cotation === '8c' ? 'selected' : ''}>8c</option>
+                <option value="8c+" ${r.cotation === '8c+' ? 'selected' : ''}>8c+</option>
+
+                <option value="9a" ${r.cotation === '9a' ? 'selected' : ''}>9a</option>
+                <option value="9a+" ${r.cotation === '9a+' ? 'selected' : ''}>9a+</option>
+
+                <option value="9b" ${r.cotation === '9b' ? 'selected' : ''}>9b</option>
+
+                <option
+                  value="NR"
+                  ${!isRatedGrade(r.cotation) ? 'selected' : ''}>
+                  NR
+                </option>
+
+              </select>
+
+            ` : `
+
+              <div class="modal-fact-val">
+                ${escapeHtml(r.cotation)}
+              </div>
+
+            `}
+
+          </div>
           <div><div class="modal-fact-lbl">Qualité topo</div><div class="modal-fact-val stars filled">${qualiteLabel(r.qualite)}</div></div>
           <div><div class="modal-fact-lbl">Statut</div><div class="modal-fact-val">${p.status==='done'?'Fait':p.status==='todo'?'À faire':'Autre'}</div></div>
           <div><div class="modal-fact-lbl">Ma note</div><div class="modal-fact-val stars ${p.rating?'filled':''}">${p.status==='done' ? ratingLabel(p.rating) : '—'}</div></div>
@@ -5048,6 +5109,45 @@ function modalHtml(){
             `).join('')}
           </div>
         </div>
+
+              ${state.user.canEdit ? `
+
+          <div class="modal-section">
+
+            ${editMode ? `
+
+              <div class="btn-row">
+
+                <button
+                  class="btn"
+                  id="saveRouteEdit">
+
+                  Enregistrer
+                </button>
+
+                <button
+                  class="btn"
+                  id="cancelRouteEdit">
+
+                  Annuler
+                </button>
+
+              </div>
+
+            ` : `
+
+              <button
+                class="btn"
+                id="startRouteEdit">
+
+                Modifier la voie
+              </button>
+
+            `}
+
+          </div>
+
+        ` : ''}
       </div>
     </div>`;
 }
@@ -6050,6 +6150,91 @@ if(toggleNR){
   if(modalOverlay) modalOverlay.onclick = (e)=>{ if(e.target.id==='modalOverlay'){ state.modalRouteId=null; render(); } };
   const modalClose = document.getElementById('modalClose');
   if(modalClose) modalClose.onclick = () => { state.modalRouteId=null; render(); };
+  
+  
+  const startRouteEdit =
+      document.getElementById('startRouteEdit');
+
+    if(startRouteEdit){
+
+      startRouteEdit.onclick = ()=>{
+
+        state.editRouteMode = true;
+
+        render();
+      };
+
+    }
+    const cancelRouteEdit =
+      document.getElementById('cancelRouteEdit');
+
+    if(cancelRouteEdit){
+
+      cancelRouteEdit.onclick = ()=>{
+
+        state.editRouteMode = false;
+
+        render();
+      };
+
+    }
+
+    const saveRouteEdit =
+      document.getElementById('saveRouteEdit');
+
+    if(saveRouteEdit){
+
+      saveRouteEdit.onclick = ()=>{
+
+        if(!state.user.canEdit){
+          return;
+        }
+
+        const route =
+          ROUTES.find(
+            r => r.id === state.modalRouteId
+          );
+
+        if(!route){
+          return;
+        }
+
+
+        const nameInput =
+          document.getElementById('editRouteName');
+
+        const gradeSelect =
+          document.getElementById('editRouteGrade');
+
+
+        if(!nameInput || !gradeSelect){
+          return;
+        }
+
+
+        const newName =
+          nameInput.value.trim();
+
+        const newGrade =
+          gradeSelect.value;
+
+
+        if(!newName){
+
+          alert('Le nom de la voie est obligatoire.');
+
+          return;
+        }
+
+
+        route.voie = newName;
+        route.cotation = newGrade;
+
+        state.editRouteMode = false;
+
+        render();
+      };
+    }
 
   document.querySelectorAll('[data-set-status]').forEach(el=>{
     el.onclick = () => {
