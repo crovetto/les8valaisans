@@ -6423,7 +6423,55 @@ if(toggleNR){
   };
 }
 
-render();
+async function initializeApp(){
+
+  const {
+    data: { session },
+    error
+  } =
+    await supabaseClient.auth.getSession();
+
+  if(error){
+
+    console.error(
+      'Erreur récupération session :',
+      error
+    );
+
+    state.isAuthenticated = false;
+    render();
+
+    return;
+  }
+
+
+  if(session){
+
+    const routesLoaded =
+      await loadRoutesFromSupabase();
+
+    if(!routesLoaded){
+
+      state.isAuthenticated = false;
+      render();
+
+      return;
+    }
+
+    state.isAuthenticated = true;
+    state.view = 'accueil';
+
+  } else {
+
+    state.isAuthenticated = false;
+
+  }
+
+  render();
+}
+
+initializeApp();
+
 window.addEventListener('resize', updateStatsGridLayout);
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
   if(state.prefs.theme === 'system'){
