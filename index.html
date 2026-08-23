@@ -248,6 +248,75 @@ body{
   }
 }
 
+/* ---- Profil ---- */
+
+.profile-page{
+  width:100%;
+  max-width:650px;
+  margin:0 auto;
+}
+
+.profile-page-header{
+  display:flex;
+  align-items:center;
+  gap:14px;
+
+  margin:18px 0 22px;
+}
+
+.profile-avatar-large{
+  width:54px;
+  height:54px;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  flex-shrink:0;
+
+  border:1px solid var(--border);
+  border-radius:14px;
+
+  background:var(--card-alt);
+
+  font-size:16px;
+  font-weight:800;
+  letter-spacing:.04em;
+}
+
+.profile-page-header h1{
+  margin:0;
+
+  font-size:21px;
+  font-weight:800;
+}
+
+.profile-page-subtitle{
+  margin-top:3px;
+
+  font-size:12.5px;
+  color:var(--text-dim);
+}
+
+.profile-field{
+  margin-bottom:16px;
+}
+
+.profile-field label{
+  display:block;
+
+  margin-bottom:6px;
+
+  font-size:12px;
+  font-weight:600;
+
+  color:var(--text-dim);
+}
+
+.profile-field input{
+  width:100%;
+}
+
 /* ---- Header + sidebar ---- */
 
 .app-header{
@@ -926,6 +995,7 @@ html[data-theme="dark"] .btn.danger{
 /* ---- Inputs ---- */
 input[type="text"],
 input[type="date"],
+input[type="email"],
 select{
   background:var(--card-alt);border:1px solid var(--border);color:var(--text);
   border-radius:var(--radius-sm);padding:8px 10px;font-size:13px;font-family:inherit;
@@ -940,6 +1010,7 @@ html[data-theme="light"] input[type="date"]{
 
 input[type="text"]:focus,
 input[type="date"]:focus,
+input[type="email"]:focus,
 select:focus{outline:1px solid var(--accent);}
 .filter-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;}
 .filter-bar input[type="text"]{flex:1;min-width:140px;}
@@ -2035,7 +2106,7 @@ const PersonalStore = (function(){
 /* ---------- 3. ÉTAT DE L'APPLICATION ---------- */
 const state = {
   isAuthenticated: false,
-  user: {firstName: 'Gianna',lastName: 'Crovetto'},
+  user: {firstName: 'Gianna',lastName: 'Crovetto',email: ''},
   menuOpen: false,
   profileMenuOpen: false,        // menu de profil (avatar) ouvert
   authView: 'login',             // login | signup | forgot
@@ -3040,7 +3111,97 @@ function viewHtml(){
   if(state.view === 'cotations') return cotationsHtml();
   if(state.view === 'todo') return todoHtml();
   if(state.view === 'params') return paramsHtml();
+  if(state.view === 'profile') return profileHtml();
   return '';
+}
+
+/* --- Vue Profile --- */
+function profileHtml(){
+
+  return `
+    <div class="profile-page">
+
+      <div class="profile-page-header">
+
+        <div class="profile-avatar-large">
+          ${escapeHtml(userInitials())}
+        </div>
+
+        <div>
+          <h1>
+            ${escapeHtml(state.user.firstName)}
+            ${escapeHtml(state.user.lastName)}
+          </h1>
+
+          <div class="profile-page-subtitle">
+            Mon compte
+          </div>
+        </div>
+
+      </div>
+
+
+      <div class="card">
+
+        <div class="card-title">
+          <span class="dot"></span>
+          Informations du compte
+        </div>
+
+
+        <div class="profile-field">
+
+          <label>
+            Prénom
+          </label>
+
+          <input
+            type="text"
+            id="profileFirstName"
+            value="${escapeHtml(state.user.firstName)}">
+
+        </div>
+
+
+        <div class="profile-field">
+
+          <label>
+            Nom
+          </label>
+
+          <input
+            type="text"
+            id="profileLastName"
+            value="${escapeHtml(state.user.lastName)}">
+
+        </div>
+
+
+        <div class="profile-field">
+
+          <label>
+            E-mail
+          </label>
+
+          <input
+            type="email"
+            id="profileEmail"
+            value="${escapeHtml(state.user.email || '')}"
+            placeholder="Adresse e-mail">
+
+        </div>
+
+
+        <button
+          class="btn"
+          id="saveProfileButton">
+          Enregistrer les modifications
+        </button>
+
+      </div>
+
+    </div>
+  `;
 }
 
 /* ---- Vue Accueil ---- */
@@ -4140,6 +4301,82 @@ function bindEvents(){
     };
 
   }
+
+  const profileMenuLogout =
+      document.getElementById('profileMenuLogout');
+
+    if(profileMenuLogout){
+
+      profileMenuLogout.onclick = ()=>{
+
+        state.isAuthenticated = false;
+        state.authView = 'login';
+
+        state.profileMenuOpen = false;
+        state.menuOpen = false;
+
+        state.view = 'accueil';
+
+        render();
+      };
+
+    }
+
+  const profileMenuProfile =
+      document.getElementById('profileMenuProfile');
+
+    if(profileMenuProfile){
+
+      profileMenuProfile.onclick = ()=>{
+
+        state.view = 'profile';
+        state.profileMenuOpen = false;
+        state.menuOpen = false;
+
+        render();
+      };
+
+    }
+
+  const saveProfileButton =
+      document.getElementById('saveProfileButton');
+
+    if(saveProfileButton){
+
+      saveProfileButton.onclick = ()=>{
+
+        const firstName =
+          document
+            .getElementById('profileFirstName')
+            .value
+            .trim();
+
+        const lastName =
+          document
+            .getElementById('profileLastName')
+            .value
+            .trim();
+
+        const email =
+          document
+            .getElementById('profileEmail')
+            .value
+            .trim();
+
+        if(firstName){
+          state.user.firstName = firstName;
+        }
+
+        if(lastName){
+          state.user.lastName = lastName;
+        }
+
+        state.user.email = email;
+
+        render();
+      };
+
+    }
 
   document.querySelectorAll('[data-auth-view]').forEach(el=>{
     el.onclick = () => {
