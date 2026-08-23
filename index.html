@@ -5453,6 +5453,13 @@ function modalHtml(){
                   Annuler
                 </button>
 
+                <button
+                  class="btn danger"
+                  id="deleteRouteButton">
+
+                  Supprimer la voie
+                </button>
+
               </div>
 
             ` : `
@@ -5961,12 +5968,35 @@ function bindEvents(){
 
     }
   
-  const profileMenuLogout =
+    const profileMenuLogout =
       document.getElementById('profileMenuLogout');
 
     if(profileMenuLogout){
 
-      profileMenuLogout.onclick = ()=>{
+      profileMenuLogout.onclick = async ()=>{
+
+        const { error } =
+          await supabaseClient.auth.signOut();
+
+        if(error){
+
+          console.error(
+            'Erreur déconnexion :',
+            error
+          );
+
+          alert(
+            'Impossible de se déconnecter.'
+          );
+
+          return;
+        }
+
+
+        ROUTES = [];
+
+        PersonalStore.load([]);
+
 
         state.isAuthenticated = false;
         state.authView = 'login';
@@ -5974,9 +6004,23 @@ function bindEvents(){
         state.profileMenuOpen = false;
         state.menuOpen = false;
 
+        state.modalRouteId = null;
+        state.editRouteMode = false;
+
         state.view = 'accueil';
 
+
+        state.user = {
+          firstName: '',
+          lastName: '',
+          email: '',
+          role: 'user',
+          canEdit: false
+        };
+
+
         render();
+
       };
 
     }
@@ -5997,12 +6041,12 @@ function bindEvents(){
 
     }
 
-  const saveProfileButton =
+    const saveProfileButton =
       document.getElementById('saveProfileButton');
 
     if(saveProfileButton){
 
-      saveProfileButton.onclick = ()=>{
+      saveProfileButton.onclick = async ()=>{
 
         const firstName =
           document
@@ -6022,17 +6066,132 @@ function bindEvents(){
             .value
             .trim();
 
-        if(firstName){
-          state.user.firstName = firstName;
+
+        if(!firstName){
+
+          alert(
+            'Le prénom est obligatoire.'
+          );
+
+          return;
         }
 
-        if(lastName){
-          state.user.lastName = lastName;
+
+        if(!lastName){
+
+          alert(
+            'Le nom est obligatoire.'
+          );
+
+          return;
         }
 
-        state.user.email = email;
+
+        const {
+          data: { user },
+          error: userError
+        } =
+          await supabaseClient.auth.getUser();
+
+
+        if(userError || !user){
+
+          console.error(
+            'Erreur récupération utilisateur :',
+            userError
+          );
+
+          alert(
+            'Impossible de récupérer le compte utilisateur.'
+          );
+
+          return;
+        }
+
+
+        // -----------------------------
+        // Prénom + nom dans profiles
+        // -----------------------------
+
+        const { error: profileError } =
+          await supabaseClient
+            .from('profiles')
+            .update({
+              first_name: firstName,
+              last_name: lastName
+            })
+            .eq(
+              'user_id',
+              user.id
+            );
+
+
+        if(profileError){
+
+          console.error(
+            'Erreur modification profil :',
+            profileError
+          );
+
+          alert(
+            'Impossible de modifier le profil.'
+          );
+
+          return;
+        }
+
+
+        // -----------------------------
+        // E-mail dans Supabase Auth
+        // seulement s'il a changé
+        // -----------------------------
+
+        if(
+          email &&
+          email !== user.email
+        ){
+
+          const { error: emailError } =
+            await supabaseClient.auth.updateUser({
+              email: email
+            });
+
+
+          if(emailError){
+
+            console.error(
+              'Erreur modification e-mail :',
+              emailError
+            );
+
+            alert(
+              'Le prénom et le nom ont été enregistrés, mais l’e-mail n’a pas pu être modifié.'
+            );
+
+            return;
+          }
+
+        }
+
+
+        state.user.firstName =
+          firstName;
+
+        state.user.lastName =
+          lastName;
+
+        if(email){
+          state.user.email = email;
+        }
+
 
         render();
+
+
+        alert(
+          'Profil mis à jour.'
+        );
+
       };
 
     }
@@ -7010,6 +7169,87 @@ if(toggleNR){
         state.editRouteMode = false;
 
         render();
+
+      };
+
+    }
+
+
+    const deleteRouteButton =
+      document.getElementById('deleteRouteButton');
+
+    if(deleteRouteButton){
+
+      deleteRouteButton.onclick = async ()=>{
+
+        if(!state.user.canEdit){
+          return;
+        }
+
+
+        const route =
+          ROUTES.find(
+            r => r.id === state.modalRouteId
+          );
+
+        if(!route){
+          return;
+        }
+
+
+        const confirmed =
+          confirm(
+            `Supprimer définitivement la voie "${route.voie}" ?\n\n` +
+            `Cette action supprimera également les données personnelles liées à cette voie pour tous les utilisateurs.`
+          );
+
+
+        if(!confirmed){
+          return;
+        }
+
+
+        const { error } =
+          await supabaseClient
+            .from('routes')
+            .delete()
+            .eq(
+              'id',
+              route.id
+            );
+
+
+        if(error){
+
+          console.error(
+            'Erreur suppression voie :',
+            error
+          );
+
+          alert(
+            'Impossible de supprimer la voie.'
+          );
+
+          return;
+        }
+
+
+        ROUTES =
+          ROUTES.filter(
+            r => r.id !== route.id
+          );
+
+
+        state.modalRouteId = null;
+        state.editRouteMode = false;
+
+
+        render();
+
+
+        alert(
+          'Voie supprimée avec succès.'
+        );
 
       };
 
