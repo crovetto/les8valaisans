@@ -3363,22 +3363,37 @@ function authHtml(){
           <h1>Créer un compte</h1>
           <p class="auth-subtitle">Crée ton compte pour suivre ta progression</p>
 
-          <form id="signupForm" class="auth-form">
+            <form id="signupForm" class="auth-form">
 
-            <input
-              type="email"
-              placeholder="Adresse e-mail"
-              required>
+              <input
+                id="signupFirstName"
+                type="text"
+                placeholder="Prénom"
+                required>
 
-            <input
-              type="password"
-              placeholder="Mot de passe"
-              required>
+              <input
+                id="signupLastName"
+                type="text"
+                placeholder="Nom"
+                required>
 
-            <input
-              type="password"
-              placeholder="Confirmer le mot de passe"
-              required>
+              <input
+                id="signupEmail"
+                type="email"
+                placeholder="Adresse e-mail"
+                required>
+
+              <input
+                id="signupPassword"
+                type="password"
+                placeholder="Mot de passe"
+                required>
+
+              <input
+                id="signupPasswordConfirm"
+                type="password"
+                placeholder="Confirmer le mot de passe"
+                required>
 
             <button class="auth-primary" type="submit">
               Créer mon compte
@@ -6503,20 +6518,209 @@ if(loginForm){
 
 }
 
-  const signupForm = document.getElementById('signupForm');
+    const signupForm =
+      document.getElementById('signupForm');
 
-  if(signupForm){
-    signupForm.onsubmit = (e) => {
-      e.preventDefault();
+    if(signupForm){
 
-      // Simulation temporaire :
-      // plus tard -> création réelle du compte Supabase
-      state.isAuthenticated = true;
-      state.view = 'accueil';
+      signupForm.onsubmit = async (e)=>{
 
-      render();
-    };
-  }
+        e.preventDefault();
+
+
+        const firstName =
+          document
+            .getElementById('signupFirstName')
+            .value
+            .trim();
+
+
+        const lastName =
+          document
+            .getElementById('signupLastName')
+            .value
+            .trim();
+
+
+        const email =
+          document
+            .getElementById('signupEmail')
+            .value
+            .trim();
+
+
+        const password =
+          document
+            .getElementById('signupPassword')
+            .value;
+
+
+        const passwordConfirm =
+          document
+            .getElementById('signupPasswordConfirm')
+            .value;
+
+
+        if(!firstName){
+
+          alert(
+            'Le prénom est obligatoire.'
+          );
+
+          return;
+        }
+
+
+        if(!lastName){
+
+          alert(
+            'Le nom est obligatoire.'
+          );
+
+          return;
+        }
+
+
+        if(password.length < 6){
+
+          alert(
+            'Le mot de passe doit contenir au moins 6 caractères.'
+          );
+
+          return;
+        }
+
+
+        if(password !== passwordConfirm){
+
+          alert(
+            'Les deux mots de passe ne correspondent pas.'
+          );
+
+          return;
+        }
+
+
+        const {
+          data,
+          error
+        } =
+          await supabaseClient.auth.signUp({
+
+            email: email,
+
+            password: password,
+
+            options: {
+
+              data: {
+                first_name: firstName,
+                last_name: lastName
+              }
+
+            }
+
+          });
+
+
+        if(error){
+
+          console.error(
+            'Erreur création compte :',
+            error
+          );
+
+          alert(
+            'Impossible de créer le compte : ' +
+            error.message
+          );
+
+          return;
+        }
+
+
+        console.log(
+          'Compte créé :',
+          data.user
+        );
+
+
+        /*
+          Si Supabase exige la confirmation
+          de l'adresse e-mail, il n'y aura
+          pas encore de session active.
+        */
+
+        if(!data.session){
+
+          alert(
+            'Compte créé. Vérifie ton adresse e-mail pour confirmer ton compte.'
+          );
+
+          state.authView = 'login';
+
+          render();
+
+          return;
+        }
+
+
+        // Si confirmation e-mail désactivée,
+        // l'utilisateur est connecté immédiatement.
+
+        const routesLoaded =
+          await loadRoutesFromSupabase();
+
+        if(!routesLoaded){
+
+          alert(
+            'Compte créé, mais impossible de charger les voies.'
+          );
+
+          return;
+        }
+
+
+        const profileLoaded =
+          await loadUserProfile(
+            data.user
+          );
+
+        if(!profileLoaded){
+
+          alert(
+            'Compte créé, mais impossible de charger le profil.'
+          );
+
+          return;
+        }
+
+
+        const personalLoaded =
+          await loadUserRoutes();
+
+        if(!personalLoaded){
+
+          alert(
+            'Compte créé, mais impossible de charger la progression.'
+          );
+
+          return;
+        }
+
+
+        state.isAuthenticated = true;
+
+        state.view = 'accueil';
+
+        state.authView = 'login';
+
+
+        render();
+
+      };
+
+    }
 
   const forgotForm = document.getElementById('forgotForm');
 
