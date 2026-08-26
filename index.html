@@ -2302,6 +2302,73 @@ input[type="range"].grade-range:focus::-moz-range-thumb{box-shadow:0 0 0 3px var
 
 }
 
+/* ---- Toast ---- */
+
+.toast{
+  position:fixed;
+
+  right:22px;
+  bottom:22px;
+
+  z-index:200;
+
+  max-width:360px;
+
+  padding:12px 16px;
+
+  border-radius:10px;
+
+  border:1px solid var(--border);
+
+  background:var(--card);
+  color:var(--text);
+
+  font-size:12.5px;
+  font-weight:600;
+
+  box-shadow:0 12px 34px rgba(0,0,0,.22);
+
+  animation:toast-in .18s ease;
+}
+
+.toast-success{
+  border-color:var(--green);
+}
+
+.toast-error{
+  border-color:var(--danger);
+}
+
+.toast-info{
+  border-color:var(--accent);
+}
+
+@keyframes toast-in{
+
+  from{
+    opacity:0;
+    transform:translateY(8px);
+  }
+
+  to{
+    opacity:1;
+    transform:translateY(0);
+  }
+
+}
+
+@media(max-width:520px){
+
+  .toast{
+    left:16px;
+    right:16px;
+    bottom:16px;
+
+    max-width:none;
+  }
+
+}
+
 /* ---- Params ---- */
 .param-row{padding:14px 0;border-top:1px solid var(--border);}
 .param-row:first-child{border-top:none;}
@@ -2919,6 +2986,8 @@ cotationsRegionsOpen: false,
 adminUsers: [],
 adminUsersLoaded: false,
 adminSearch: '',
+
+toast: null,
 };
 
 
@@ -3089,6 +3158,42 @@ function applyTheme(){ //Jour / Nuit / Système
 }
 function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function showToast(message, type='success'){
+
+  state.toast = {
+    message,
+    type
+  };
+
+  render();
+
+  setTimeout(()=>{
+
+    if(
+      state.toast &&
+      state.toast.message === message
+    ){
+      state.toast = null;
+      render();
+    }
+
+  }, 2600);
+}
+
+
+function toastHtml(){
+
+  if(!state.toast){
+    return '';
+  }
+
+  return `
+    <div class="toast toast-${state.toast.type}">
+      ${escapeHtml(state.toast.message)}
+    </div>
+  `;
 }
 
 function userInitials(){
@@ -3609,11 +3714,12 @@ function render(){
     root.innerHTML = authHtml();
   } else {
     root.innerHTML =
-      topnavHtml() +
-      `<div class="app">` +
-      viewHtml() +
-      `</div>` +
-      modalHtml();
+    topnavHtml() +
+    `<div class="app">` +
+    viewHtml() +
+    `</div>` +
+    modalHtml() +
+    toastHtml();
   }
 
   bindEvents();
@@ -6544,8 +6650,9 @@ function bindEvents(){
             error
           );
 
-          alert(
-            'Impossible d’ajouter la voie.'
+          showToast(
+            'Impossible d’ajouter la voie.',
+            'error'
           );
 
           return;
@@ -6585,8 +6692,9 @@ function bindEvents(){
         render();
 
 
-        alert(
-          'Voie ajoutée avec succès.'
+        showToast(
+          'Voie ajoutée avec succès.',
+          'success'
         );
 
       };
@@ -6759,8 +6867,9 @@ function bindEvents(){
             profileError
           );
 
-          alert(
-            'Impossible de modifier le profil.'
+          showToast(
+            'Impossible de modifier le profil.',
+            'error'
           );
 
           return;
@@ -6844,8 +6953,9 @@ function bindEvents(){
 
         } else {
 
-          alert(
-            'Profil mis à jour.'
+          showToast(
+            'Profil mis à jour.',
+            'success'
           );
 
         }
@@ -7799,8 +7909,9 @@ if(adminSearchInput){
           error
         );
 
-        alert(
-          'Impossible de modifier le rôle.'
+        showToast(
+          'Impossible de modifier le rôle.',
+          'error'
         );
 
         select.value =
@@ -7814,8 +7925,9 @@ if(adminSearchInput){
         newRole;
 
 
-      alert(
-        'Rôle modifié avec succès.'
+      showToast(
+        'Rôle modifié avec succès.',
+        'success'
       );
 
     };
@@ -8312,14 +8424,16 @@ if(toggleNR){
 
           if(error.code === '23505'){
 
-            alert(
-              'Cette modification créerait une voie déjà existante dans la base.'
+            showToast(
+              'Cette modification créerait une voie déjà existante dans la base.',
+              'error'
             );
 
           } else {
 
-            alert(
-              'Impossible de modifier la voie.'
+            showToast(
+              'Impossible de modifier la voie.',
+              'error'
             );
 
           }
@@ -8412,8 +8526,9 @@ if(toggleNR){
         render();
 
 
-        alert(
-          'Voie supprimée avec succès.'
+        showToast(
+          'Voie supprimée avec succès.',
+          'success'
         );
 
       };
