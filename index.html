@@ -6436,10 +6436,26 @@ function bindEvents(){
           return;
         }
 
+        const duplicateRoute =
+          ROUTES.find(route =>
+            route.region.trim().toLowerCase() === region.toLowerCase() &&
+            route.lieu.trim().toLowerCase() === lieu.toLowerCase() &&
+            route.secteur.trim().toLowerCase() === secteur.toLowerCase() &&
+            route.voie.trim().toLowerCase() === voie.toLowerCase() &&
+            route.cotation === cotation
+          );
 
+
+        if(duplicateRoute){
+
+          alert(
+            'Cette voie existe déjà dans la base.'
+          );
+
+          return;
+        }
         // -----------------------------
         // Générer le prochain ID
-        // R0572 -> R0573
         // -----------------------------
 
         const maxRouteNumber =
@@ -7255,10 +7271,23 @@ if(loginForm){
             error
           );
 
-          alert(
-            'Impossible de créer le compte : ' +
+          if(
             error.message
-          );
+              .toLowerCase()
+              .includes('already registered')
+          ){
+
+            alert(
+              'Un compte existe déjà avec cette adresse e-mail.'
+            );
+
+          } else {
+
+            alert(
+              'Impossible de créer le compte.'
+            );
+
+          }
 
           return;
         }
@@ -8281,9 +8310,19 @@ if(toggleNR){
             error
           );
 
-          alert(
-            'Impossible de modifier la voie.'
-          );
+          if(error.code === '23505'){
+
+            alert(
+              'Cette modification créerait une voie déjà existante dans la base.'
+            );
+
+          } else {
+
+            alert(
+              'Impossible de modifier la voie.'
+            );
+
+          }
 
           return;
         }
