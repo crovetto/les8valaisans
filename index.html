@@ -2077,6 +2077,231 @@ input[type="range"].grade-range:focus::-moz-range-thumb{box-shadow:0 0 0 3px var
 /* ---- Todo view ---- */
 .empty-state{color:var(--text-dim);font-size:13px;padding:30px 10px;text-align:center;}
 
+/* ---- Administration ---- */
+
+.admin-header{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:18px;
+
+  margin-bottom:18px;
+}
+
+.admin-header .card-title{
+  margin-bottom:4px;
+}
+
+.admin-count{
+  font-size:12px;
+  color:var(--text-dim);
+}
+
+
+.admin-summary{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+
+.admin-summary-item{
+  padding:4px 8px;
+
+  border-radius:20px;
+
+  background:var(--gray-dim);
+  color:var(--text-dim);
+
+  font-size:10.5px;
+  font-weight:600;
+}
+
+.admin-summary-item.editor{
+  background:var(--yellow-dim);
+  color:var(--yellow);
+}
+
+.admin-summary-item.admin{
+  background:
+    color-mix(
+      in srgb,
+      var(--accent) 15%,
+      transparent
+    );
+
+  color:var(--accent);
+}
+
+
+.admin-search-wrap{
+  margin-bottom:8px;
+}
+
+.admin-search-wrap input{
+  width:100%;
+  max-width:440px;
+
+  padding:10px 12px;
+}
+
+
+.admin-results-count{
+  min-height:18px;
+
+  margin-bottom:5px;
+
+  font-size:11px;
+  color:var(--text-dim);
+}
+
+
+.admin-user-row{
+  display:grid;
+
+  grid-template-columns:
+    minmax(0,1fr)
+    auto
+    130px;
+
+  align-items:center;
+
+  gap:14px;
+
+  padding:13px 0;
+
+  border-top:1px solid var(--border);
+}
+
+.admin-user-main{
+  min-width:0;
+}
+
+
+.admin-user-name{
+  display:flex;
+  align-items:center;
+  gap:7px;
+
+  min-width:0;
+
+  font-size:13.5px;
+  font-weight:700;
+}
+
+
+.admin-user-email{
+  margin-top:3px;
+
+  font-size:11.5px;
+  color:var(--text-dim);
+
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+
+.admin-self-badge{
+  padding:2px 6px;
+
+  border-radius:10px;
+
+  background:var(--gray-dim);
+  color:var(--text-dim);
+
+  font-size:9.5px;
+  font-weight:600;
+}
+
+
+.admin-role-badge{
+  min-width:72px;
+
+  padding:4px 8px;
+
+  border-radius:20px;
+
+  text-align:center;
+
+  font-size:10.5px;
+  font-weight:700;
+}
+
+
+.admin-role-badge.role-user{
+  background:var(--gray-dim);
+  color:var(--text-dim);
+}
+
+
+.admin-role-badge.role-editor{
+  background:var(--yellow-dim);
+  color:var(--yellow);
+}
+
+
+.admin-role-badge.role-admin{
+  background:
+    color-mix(
+      in srgb,
+      var(--accent) 15%,
+      transparent
+    );
+
+  color:var(--accent);
+}
+
+
+.admin-role-select{
+  width:130px;
+}
+
+
+.admin-role-select:disabled{
+  opacity:.55;
+  cursor:not-allowed;
+}
+
+
+@media(max-width:650px){
+
+  .admin-header{
+    flex-direction:column;
+  }
+
+  .admin-summary{
+    justify-content:flex-start;
+  }
+
+
+  .admin-user-row{
+
+    grid-template-columns:
+      minmax(0,1fr)
+      auto;
+
+  }
+
+
+  .admin-role-select{
+    grid-column:1 / -1;
+
+    width:100%;
+  }
+
+}
+
+
+@media(max-width:420px){
+
+  .admin-role-badge{
+    display:none;
+  }
+
+}
+
 /* ---- Params ---- */
 .param-row{padding:14px 0;border-top:1px solid var(--border);}
 .param-row:first-child{border-top:none;}
@@ -2221,6 +2446,7 @@ async function loadUserProfile(user){
 
 
   state.user = {
+    id: user.id,
     firstName: data.first_name || '',
     lastName: data.last_name || '',
     email: user.email || '',
@@ -2235,6 +2461,46 @@ async function loadUserProfile(user){
     'Profil chargé :',
     state.user
   );
+
+  return true;
+}
+async function loadAdminUsers(){
+
+  if(state.user.role !== 'admin'){
+    return false;
+  }
+
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient
+      .rpc('admin_list_users');
+
+
+  if(error){
+
+    console.error(
+      'Erreur chargement utilisateurs :',
+      error
+    );
+
+    return false;
+  }
+
+
+  state.adminUsers =
+    data || [];
+
+  state.adminUsersLoaded = true;
+
+
+  console.log(
+    'Utilisateurs chargés :',
+    state.adminUsers.length
+  );
+
 
   return true;
 }
@@ -2572,6 +2838,7 @@ const state = {
   isAuthenticated: false,
   
   user: {
+  id: null,
   firstName: '',
   lastName: '',
   email: '',
@@ -2648,7 +2915,12 @@ newRouteLieu: '',
 newRouteSecteur: '',
 cotationsRegions: null,
 cotationsRegionsOpen: false,
+
+adminUsers: [],
+adminUsersLoaded: false,
+adminSearch: '',
 };
+
 
 /* ---------- 4. FILTRAGE / CALCULS ---------- */
 function personalOf(route){ return PersonalStore.getRoute(route.id); }
@@ -3576,6 +3848,15 @@ function topnavHtml(){
       : []
     ),
 
+    ...(state.user.role === 'admin'
+      ? [{
+          id:'admin',
+          label:'Administration',
+          icon:iconUsers()
+        }]
+      : []
+    ),
+
     {id:'params', label:'Paramètres', icon:iconGear()},
   ];
 
@@ -3674,9 +3955,10 @@ function viewHtml(){
   if(state.view === 'cotations') return cotationsHtml();
   if(state.view === 'todo') return todoHtml();
   if(state.view === 'params') return paramsHtml();
-  if(state.view === 'profile') return profileHtml();
-  if(state.view === 'addRoute') return addRouteHtml();
-  return '';
+if(state.view === 'profile') return profileHtml();
+if(state.view === 'addRoute') return addRouteHtml();
+if(state.view === 'admin') return adminHtml();
+return '';
 }
 
 /* --- Vue Profile --- */
@@ -5321,7 +5603,246 @@ function todoHtml(){
       </div>
     </div>`;
 }
+function adminHtml(){
 
+  if(state.user.role !== 'admin'){
+
+    return `
+      <div class="card">
+
+        <div class="empty-state">
+          Accès réservé aux administrateurs.
+        </div>
+
+      </div>
+    `;
+  }
+
+
+  if(!state.adminUsersLoaded){
+
+    return `
+      <div class="card">
+
+        <div class="card-title">
+          <span class="dot"></span>
+          Utilisateurs
+        </div>
+
+        <div class="empty-state">
+          Chargement des utilisateurs…
+        </div>
+
+      </div>
+    `;
+  }
+
+
+  const search =
+    state.adminSearch
+      .trim()
+      .toLowerCase();
+
+
+  const filteredUsers =
+    state.adminUsers.filter(user=>{
+
+      if(!search){
+        return true;
+      }
+
+      const haystack =
+        [
+          user.first_name || '',
+          user.last_name || '',
+          user.email || '',
+          user.role || ''
+        ]
+        .join(' ')
+        .toLowerCase();
+
+      return haystack.includes(search);
+
+    });
+
+
+  const totalUsers =
+    state.adminUsers.length;
+
+  const totalAdmins =
+    state.adminUsers.filter(
+      user => user.role === 'admin'
+    ).length;
+
+  const totalEditors =
+    state.adminUsers.filter(
+      user => user.role === 'editor'
+    ).length;
+
+  const totalRegularUsers =
+    state.adminUsers.filter(
+      user => user.role === 'user'
+    ).length;
+
+
+  return `
+    <div class="card">
+
+      <div class="admin-header">
+
+        <div>
+
+          <div class="card-title">
+            <span class="dot"></span>
+            Utilisateurs
+          </div>
+
+          <div class="admin-count">
+            ${totalUsers}
+            utilisateur${totalUsers > 1 ? 's' : ''}
+          </div>
+
+        </div>
+
+
+        <div class="admin-summary">
+
+          <span class="admin-summary-item">
+            ${totalRegularUsers} utilisateur${totalRegularUsers > 1 ? 's' : ''}
+          </span>
+
+          <span class="admin-summary-item editor">
+            ${totalEditors} éditeur${totalEditors > 1 ? 's' : ''}
+          </span>
+
+          <span class="admin-summary-item admin">
+            ${totalAdmins} admin${totalAdmins > 1 ? 's' : ''}
+          </span>
+
+        </div>
+
+      </div>
+
+
+      <div class="admin-search-wrap">
+
+        <input
+          type="text"
+          id="adminSearchInput"
+          placeholder="Rechercher par nom ou e-mail…"
+          value="${escapeHtml(state.adminSearch)}">
+
+      </div>
+
+
+      <div class="admin-results-count">
+
+        ${
+          search
+            ? `${filteredUsers.length} résultat${filteredUsers.length > 1 ? 's' : ''}`
+            : ''
+        }
+
+      </div>
+
+
+      ${
+        filteredUsers.length
+          ? filteredUsers.map(user=>{
+
+              const isSelf =
+                user.user_id ===
+                state.user.id;
+
+
+              const roleLabel =
+                user.role === 'admin'
+                  ? 'Admin'
+                  : user.role === 'editor'
+                    ? 'Éditeur'
+                    : 'Utilisateur';
+
+
+              return `
+                <div class="admin-user-row">
+
+                  <div class="admin-user-main">
+
+                    <div class="admin-user-name">
+
+                      ${
+                        escapeHtml(
+                          `${user.first_name || ''} ${user.last_name || ''}`.trim()
+                        ) || 'Sans nom'
+                      }
+
+                      ${
+                        isSelf
+                          ? `<span class="admin-self-badge">Toi</span>`
+                          : ''
+                      }
+
+                    </div>
+
+
+                    <div class="admin-user-email">
+                      ${escapeHtml(user.email || '')}
+                    </div>
+
+                  </div>
+
+
+                  <div
+                    class="
+                      admin-role-badge
+                      role-${user.role}
+                    ">
+
+                    ${roleLabel}
+
+                  </div>
+
+
+                  <select
+                    class="admin-role-select"
+                    data-admin-user="${user.user_id}"
+                    ${isSelf ? 'disabled' : ''}>
+
+                    <option
+                      value="user"
+                      ${user.role === 'user' ? 'selected' : ''}>
+                      Utilisateur
+                    </option>
+
+                    <option
+                      value="editor"
+                      ${user.role === 'editor' ? 'selected' : ''}>
+                      Éditeur
+                    </option>
+
+                    <option
+                      value="admin"
+                      ${user.role === 'admin' ? 'selected' : ''}>
+                      Admin
+                    </option>
+
+                  </select>
+
+                </div>
+              `;
+
+            }).join('')
+
+          : `
+            <div class="empty-state">
+              Aucun utilisateur ne correspond à cette recherche.
+            </div>
+          `
+      }
+
+    </div>
+  `;
+}
 /* ---- Vue Paramètres ---- */
 function paramsHtml(){
   return `
@@ -5576,6 +6097,27 @@ function iconPlus(){
         stroke="currentColor"
         stroke-width="2"
         stroke-linecap="round"/>
+    </svg>
+  `;
+}
+function iconUsers(){
+  return `
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round">
+
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+
+      <circle cx="9" cy="7" r="4"/>
+
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+
+      <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+
     </svg>
   `;
 }
@@ -6021,6 +6563,8 @@ function bindEvents(){
 
         state.newRouteLieu = '';
 
+        state.newRouteSecteur = '';
+
 
         render();
 
@@ -6076,6 +6620,7 @@ function bindEvents(){
 
 
         state.user = {
+          id: null,
           firstName: '',
           lastName: '',
           email: '',
@@ -6211,12 +6756,17 @@ function bindEvents(){
         // seulement s'il a changé
         // -----------------------------
 
+        let emailChanged = false;
+
         if(
           email &&
           email !== user.email
         ){
 
-          const { error: emailError } =
+          const {
+            data: emailData,
+            error: emailError
+          } =
             await supabaseClient.auth.updateUser({
               email: email
             });
@@ -6236,6 +6786,9 @@ function bindEvents(){
             return;
           }
 
+
+          emailChanged = true;
+
         }
 
 
@@ -6245,20 +6798,42 @@ function bindEvents(){
         state.user.lastName =
           lastName;
 
-        if(email){
-          state.user.email = email;
+
+        /*
+          On recharge l'utilisateur réel depuis Supabase
+          pour ne pas afficher une adresse e-mail
+          qui n'aurait pas encore été confirmée.
+        */
+
+        const {
+          data: { user: updatedUser }
+        } =
+          await supabaseClient.auth.getUser();
+
+
+        if(updatedUser){
+          state.user.email =
+            updatedUser.email || state.user.email;
         }
 
 
         render();
 
 
-        alert(
-          'Profil mis à jour.'
-        );
+        if(emailChanged){
 
+          alert(
+            'Profil mis à jour. Si Supabase demande une confirmation du changement d’adresse e-mail, vérifie ta boîte mail.'
+          );
+
+        } else {
+
+          alert(
+            'Profil mis à jour.'
+          );
+
+        }
       };
-
     }
   const homeBrandButton = document.getElementById('homeBrandButton');
     if(homeBrandButton){
@@ -7050,14 +7625,172 @@ if(loginForm){
 
 });
 
-  document.querySelectorAll('[data-nav]').forEach(el=>{
-    el.onclick = () => {
-      state.view = el.dataset.nav;
-      if(state.view === 'regions'){ state.nav = {region:null, lieu:null, secteur:null}; }
-      state.confirmReset = false;
-      state.menuOpen = false;
+document.querySelectorAll('[data-nav]').forEach(el=>{
+
+  el.onclick = async () => {
+
+    state.view = el.dataset.nav;
+
+    if(state.view === 'regions'){
+      state.nav = {
+        region:null,
+        lieu:null,
+        secteur:null
+      };
+    }
+
+    state.confirmReset = false;
+    state.menuOpen = false;
+
+
+    if(state.view === 'admin'){
+
+      state.adminUsersLoaded = false;
+
       render();
+
+      await loadAdminUsers();
+
+    }
+
+
+    render();
+
+  };
+});
+  
+const adminSearchInput =
+  document.getElementById('adminSearchInput');
+
+
+if(adminSearchInput){
+
+  adminSearchInput.oninput = (e)=>{
+
+    state.adminSearch =
+      e.target.value;
+
+
+    const cursor =
+      e.target.selectionStart;
+
+
+    render();
+
+
+    const input =
+      document.getElementById(
+        'adminSearchInput'
+      );
+
+
+    if(input){
+
+      input.focus();
+
+      input.setSelectionRange(
+        cursor,
+        cursor
+      );
+
+    }
+
+  };
+
+}
+  document
+  .querySelectorAll('[data-admin-user]')
+  .forEach(select=>{
+
+    select.onchange = async ()=>{
+
+      if(state.user.role !== 'admin'){
+        return;
+      }
+
+
+      const userId =
+        select.dataset.adminUser;
+
+      const newRole =
+        select.value;
+
+
+      const currentUser =
+        state.adminUsers.find(
+          user =>
+            user.user_id === userId
+        );
+
+
+      if(!currentUser){
+        return;
+      }
+
+
+      const previousRole =
+        currentUser.role;
+
+
+      const confirmed =
+        confirm(
+          `Modifier le rôle de ` +
+          `${currentUser.first_name || ''} ` +
+          `${currentUser.last_name || ''} ` +
+          `de "${previousRole}" vers "${newRole}" ?`
+        );
+
+
+      if(!confirmed){
+
+        select.value =
+          previousRole;
+
+        return;
+      }
+
+
+      const { error } =
+        await supabaseClient.rpc(
+          'admin_set_role',
+          {
+            target_user_id:
+              userId,
+
+            new_role:
+              newRole
+          }
+        );
+
+
+      if(error){
+
+        console.error(
+          'Erreur modification rôle :',
+          error
+        );
+
+        alert(
+          'Impossible de modifier le rôle.'
+        );
+
+        select.value =
+          previousRole;
+
+        return;
+      }
+
+
+      currentUser.role =
+        newRole;
+
+
+      alert(
+        'Rôle modifié avec succès.'
+      );
+
     };
+
   });
 
   document.querySelectorAll('[data-clear-filter]').forEach(el=>{
