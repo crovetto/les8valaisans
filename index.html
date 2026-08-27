@@ -1017,6 +1017,7 @@ html[data-theme="dark"] .btn.danger{
 input[type="text"],
 input[type="date"],
 input[type="email"],
+input[type="password"],
 select{
   background:var(--card-alt);border:1px solid var(--border);color:var(--text);
   border-radius:var(--radius-sm);padding:8px 10px;font-size:13px;font-family:inherit;
@@ -1032,6 +1033,7 @@ html[data-theme="light"] input[type="date"]{
 input[type="text"]:focus,
 input[type="date"]:focus,
 input[type="email"]:focus,
+input[type="password"]:focus,
 select:focus{outline:1px solid var(--accent);}
 .filter-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;}
 .filter-bar input[type="text"]{flex:1;min-width:140px;}
@@ -4093,11 +4095,13 @@ function profileHtml(){
       </div>
 
 
+      <!-- INFORMATIONS PERSONNELLES -->
+
       <div class="card">
 
         <div class="card-title">
           <span class="dot"></span>
-          Informations du compte
+          Informations personnelles
         </div>
 
 
@@ -4129,33 +4133,206 @@ function profileHtml(){
         </div>
 
 
-        <div class="profile-field">
-
-          <label>
-            E-mail
-          </label>
-
-          <input
-            type="email"
-            id="profileEmail"
-            value="${escapeHtml(state.user.email || '')}"
-            placeholder="Adresse e-mail">
-
-        </div>
-
-
         <button
           class="btn"
           id="saveProfileButton">
+
           Enregistrer les modifications
+
         </button>
 
       </div>
 
+
+
+      <!-- E-MAIL -->
+
+      <div
+        class="card"
+        style="margin-top:16px;">
+
+        <div class="card-title">
+          <span class="dot"></span>
+          E-mail
+        </div>
+
+
+        <div
+          id="emailDisplayBlock">
+
+          <div
+            style="
+              margin-bottom:14px;
+              color:var(--text);
+              font-size:13px;
+            ">
+
+            ${escapeHtml(state.user.email || '')}
+
+          </div>
+
+
+          <button
+            type="button"
+            class="btn"
+            id="editEmailButton">
+
+            Modifier l’e-mail
+
+          </button>
+
+        </div>
+
+
+        <div
+          id="emailEditBlock"
+          style="display:none;">
+
+          <div class="profile-field">
+
+            <label>
+              Nouvelle adresse e-mail
+            </label>
+
+            <input
+              type="email"
+              id="newProfileEmail"
+              value="${escapeHtml(state.user.email || '')}"
+              autocomplete="email">
+
+          </div>
+
+
+          <div class="btn-row">
+
+            <button
+              type="button"
+              class="btn"
+              id="saveEmailButton">
+
+              Enregistrer
+
+            </button>
+
+            <button
+              type="button"
+              class="btn"
+              id="cancelEmailButton">
+
+              Annuler
+
+            </button>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+
+      <!-- MOT DE PASSE -->
+
+      <div
+        class="card"
+        style="margin-top:16px;">
+
+        <div class="card-title">
+          <span class="dot"></span>
+          Mot de passe
+        </div>
+
+
+        <div
+          id="passwordDisplayBlock">
+
+          <div
+            style="
+              margin-bottom:14px;
+              font-size:18px;
+              letter-spacing:3px;
+            ">
+
+            ••••••••
+
+          </div>
+
+
+          <button
+            type="button"
+            class="btn"
+            id="editPasswordButton">
+
+            Modifier le mot de passe
+
+          </button>
+
+        </div>
+
+
+        <div
+          id="passwordEditBlock"
+          style="display:none;">
+
+
+          <div class="profile-field">
+
+            <label>
+              Nouveau mot de passe
+            </label>
+
+            <input
+              type="password"
+              id="profilePassword"
+              autocomplete="new-password">
+
+          </div>
+
+
+          <div class="profile-field">
+
+            <label>
+              Confirmer le nouveau mot de passe
+            </label>
+
+            <input
+              type="password"
+              id="profilePasswordConfirm"
+              autocomplete="new-password">
+
+          </div>
+
+
+          <div class="btn-row">
+
+            <button
+              type="button"
+              class="btn"
+              id="changePasswordButton">
+
+              Enregistrer
+
+            </button>
+
+            <button
+              type="button"
+              class="btn"
+              id="cancelPasswordButton">
+
+              Annuler
+
+            </button>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
     </div>
   `;
 }
-
 /* ---- Vue Accueil ---- */
 function addRouteHtml(){
 
@@ -6387,6 +6564,8 @@ function bindEvents(){
     if(addRouteButton){
 
       addRouteButton.onclick = async ()=>{
+        addRouteButton.disabled = true;
+        addRouteButton.textContent = 'Ajout…';
 
         if(!state.user.canEdit){
           return;
@@ -6503,6 +6682,10 @@ function bindEvents(){
             'Sélectionne une région.'
           );
 
+          addRouteButton.disabled = false;
+          addRouteButton.textContent =
+            'Ajouter la voie';
+
           return;
         }
 
@@ -6511,7 +6694,9 @@ function bindEvents(){
           alert(
             'Sélectionne ou crée un lieu.'
           );
-
+            addRouteButton.disabled = false;
+            addRouteButton.textContent =
+              'Ajouter la voie';
           return;
         }
 
@@ -6520,7 +6705,9 @@ function bindEvents(){
           alert(
             'Sélectionne ou crée un secteur.'
           );
-
+            addRouteButton.disabled = false;
+            addRouteButton.textContent =
+            'Ajouter la voie';
           return;
         }
 
@@ -6530,6 +6717,10 @@ function bindEvents(){
             'Le nom de la voie est obligatoire.'
           );
 
+          addRouteButton.disabled = false;
+          addRouteButton.textContent =
+            'Ajouter la voie';
+
           return;
         }
 
@@ -6538,6 +6729,10 @@ function bindEvents(){
           alert(
             'Sélectionne une cotation.'
           );
+
+            addRouteButton.disabled = false;
+            addRouteButton.textContent =
+              'Ajouter la voie';
 
           return;
         }
@@ -6557,7 +6752,9 @@ function bindEvents(){
           alert(
             'Cette voie existe déjà dans la base.'
           );
-
+            addRouteButton.disabled = false;
+            addRouteButton.textContent =
+            'Ajouter la voie';
           return;
         }
         // -----------------------------
@@ -6654,7 +6851,9 @@ function bindEvents(){
             'Impossible d’ajouter la voie.',
             'error'
           );
-
+            addRouteButton.disabled = false;
+            addRouteButton.textContent =
+              'Ajouter la voie';
           return;
         }
 
@@ -6696,7 +6895,9 @@ function bindEvents(){
           'Voie ajoutée avec succès.',
           'success'
         );
-
+          addRouteButton.disabled = false;
+          addRouteButton.textContent =
+            'Ajouter la voie';
       };
 
     }
@@ -6775,193 +6976,435 @@ function bindEvents(){
 
     }
 
-    const saveProfileButton =
-      document.getElementById('saveProfileButton');
+   // =====================================================
+// PROFIL — PRÉNOM + NOM
+// =====================================================
 
-    if(saveProfileButton){
+const saveProfileButton =
+  document.getElementById(
+    'saveProfileButton'
+  );
 
-      saveProfileButton.onclick = async ()=>{
+if(saveProfileButton){
 
-        const firstName =
-          document
-            .getElementById('profileFirstName')
-            .value
-            .trim();
+  saveProfileButton.onclick =
+    async ()=>{
 
-        const lastName =
-          document
-            .getElementById('profileLastName')
-            .value
-            .trim();
+      const firstName =
+        document
+          .getElementById(
+            'profileFirstName'
+          )
+          .value
+          .trim();
 
-        const email =
-          document
-            .getElementById('profileEmail')
-            .value
-            .trim();
+      const lastName =
+        document
+          .getElementById(
+            'profileLastName'
+          )
+          .value
+          .trim();
 
 
-        if(!firstName){
+      if(!firstName){
 
-          alert(
-            'Le prénom est obligatoire.'
+        showToast(
+          'Le prénom est obligatoire.',
+          'error'
+        );
+
+        return;
+      }
+
+
+      if(!lastName){
+
+        showToast(
+          'Le nom est obligatoire.',
+          'error'
+        );
+
+        return;
+      }
+
+
+      const {
+        data: { user },
+        error: userError
+      } =
+        await supabaseClient.auth.getUser();
+
+
+      if(userError || !user){
+
+        showToast(
+          'Impossible de récupérer le compte utilisateur.',
+          'error'
+        );
+
+        return;
+      }
+
+
+      const { error } =
+        await supabaseClient
+          .from('profiles')
+          .update({
+
+            first_name: firstName,
+            last_name: lastName
+
+          })
+          .eq(
+            'user_id',
+            user.id
           );
 
-          return;
-        }
+
+      if(error){
+
+        console.error(
+          'Erreur modification profil :',
+          error
+        );
+
+        showToast(
+          'Impossible de modifier le profil.',
+          'error'
+        );
+
+        return;
+      }
 
 
-        if(!lastName){
+      state.user.firstName =
+        firstName;
 
-          alert(
-            'Le nom est obligatoire.'
-          );
-
-          return;
-        }
+      state.user.lastName =
+        lastName;
 
 
-        const {
-          data: { user },
-          error: userError
-        } =
-          await supabaseClient.auth.getUser();
+      showToast(
+        'Profil mis à jour.',
+        'success'
+      );
+
+    };
+
+}
 
 
-        if(userError || !user){
 
-          console.error(
-            'Erreur récupération utilisateur :',
-            userError
-          );
+// =====================================================
+// PROFIL — MODIFIER E-MAIL
+// =====================================================
 
-          alert(
-            'Impossible de récupérer le compte utilisateur.'
-          );
+const editEmailButton =
+  document.getElementById(
+    'editEmailButton'
+  );
 
-          return;
-        }
+if(editEmailButton){
+
+  editEmailButton.onclick = ()=>{
+
+    document.getElementById(
+      'emailDisplayBlock'
+    ).style.display = 'none';
+
+    document.getElementById(
+      'emailEditBlock'
+    ).style.display = 'block';
+
+  };
+
+}
 
 
-        // -----------------------------
-        // Prénom + nom dans profiles
-        // -----------------------------
 
-        const { error: profileError } =
-          await supabaseClient
-            .from('profiles')
-            .update({
-              first_name: firstName,
-              last_name: lastName
-            })
-            .eq(
-              'user_id',
-              user.id
+// ANNULER MODIFICATION E-MAIL
+
+const cancelEmailButton =
+  document.getElementById(
+    'cancelEmailButton'
+  );
+
+if(cancelEmailButton){
+
+  cancelEmailButton.onclick = ()=>{
+
+    document.getElementById(
+      'emailEditBlock'
+    ).style.display = 'none';
+
+    document.getElementById(
+      'emailDisplayBlock'
+    ).style.display = 'block';
+
+  };
+
+}
+
+
+
+// ENREGISTRER NOUVEL E-MAIL
+
+const saveEmailButton =
+  document.getElementById(
+    'saveEmailButton'
+  );
+
+if(saveEmailButton){
+
+  saveEmailButton.onclick =
+    async ()=>{
+
+      const email =
+        document
+          .getElementById(
+            'newProfileEmail'
+          )
+          .value
+          .trim();
+
+
+      if(!email){
+
+        showToast(
+          'Entre une adresse e-mail.',
+          'error'
+        );
+
+        return;
+      }
+
+
+      const {
+        data: { user },
+        error: userError
+      } =
+        await supabaseClient.auth.getUser();
+
+
+      if(userError || !user){
+
+        showToast(
+          'Impossible de récupérer le compte utilisateur.',
+          'error'
+        );
+
+        return;
+      }
+
+
+      if(email === user.email){
+
+        showToast(
+          'Cette adresse e-mail est déjà utilisée pour ton compte.',
+          'info'
+        );
+
+        return;
+      }
+
+
+      const { error } =
+        await supabaseClient.auth.updateUser({
+          email: email
+        });
+
+
+      if(error){
+
+        console.error(
+          'Erreur modification e-mail :',
+          error
+        );
+
+        showToast(
+          'Impossible de modifier l’e-mail.',
+          'error'
+        );
+
+        return;
+      }
+
+
+      /*
+        On récupère l'adresse réellement
+        enregistrée dans Supabase.
+      */
+
+      const {
+        data: { user: updatedUser }
+      } =
+        await supabaseClient.auth.getUser();
+
+
+      if(updatedUser){
+
+        state.user.email =
+          updatedUser.email ||
+          state.user.email;
+
+      }
+
+
+      showToast(
+        'Demande de modification de l’e-mail enregistrée.',
+        'success'
+      );
+
+    };
+
+}
+
+
+
+// =====================================================
+// PROFIL — MODIFIER MOT DE PASSE
+// =====================================================
+
+      const editPasswordButton =
+        document.getElementById(
+          'editPasswordButton'
+        );
+
+      if(editPasswordButton){
+
+        editPasswordButton.onclick = ()=>{
+
+          document.getElementById(
+            'passwordDisplayBlock'
+          ).style.display = 'none';
+
+          document.getElementById(
+            'passwordEditBlock'
+          ).style.display = 'block';
+
+        };
+
+      }
+
+
+
+      // ANNULER MODIFICATION MOT DE PASSE
+
+      const cancelPasswordButton =
+        document.getElementById(
+          'cancelPasswordButton'
+        );
+
+      if(cancelPasswordButton){
+
+        cancelPasswordButton.onclick = ()=>{
+
+          document.getElementById(
+            'passwordEditBlock'
+          ).style.display = 'none';
+
+          document.getElementById(
+            'passwordDisplayBlock'
+          ).style.display = 'block';
+
+        };
+
+      }
+
+
+
+      // ENREGISTRER NOUVEAU MOT DE PASSE
+
+      const changePasswordButton =
+        document.getElementById(
+          'changePasswordButton'
+        );
+
+      if(changePasswordButton){
+
+        changePasswordButton.onclick =
+          async ()=>{
+
+            const password =
+              document
+                .getElementById(
+                  'profilePassword'
+                )
+                .value;
+
+            const confirmation =
+              document
+                .getElementById(
+                  'profilePasswordConfirm'
+                )
+                .value;
+
+
+            if(!password){
+
+              showToast(
+                'Entre un nouveau mot de passe.',
+                'error'
+              );
+
+              return;
+            }
+
+
+            if(password.length < 6){
+
+              showToast(
+                'Le mot de passe doit contenir au moins 6 caractères.',
+                'error'
+              );
+
+              return;
+            }
+
+
+            if(password !== confirmation){
+
+              showToast(
+                'Les mots de passe ne correspondent pas.',
+                'error'
+              );
+
+              return;
+            }
+
+
+            const { error } =
+              await supabaseClient.auth.updateUser({
+                password: password
+              });
+
+
+            if(error){
+
+              console.error(
+                'Erreur modification mot de passe :',
+                error
+              );
+
+              showToast(
+                'Impossible de modifier le mot de passe.',
+                'error'
+              );
+
+              return;
+            }
+
+
+            showToast(
+              'Mot de passe modifié avec succès.',
+              'success'
             );
 
+          };
 
-        if(profileError){
-
-          console.error(
-            'Erreur modification profil :',
-            profileError
-          );
-
-          showToast(
-            'Impossible de modifier le profil.',
-            'error'
-          );
-
-          return;
-        }
-
-
-        // -----------------------------
-        // E-mail dans Supabase Auth
-        // seulement s'il a changé
-        // -----------------------------
-
-        let emailChanged = false;
-
-        if(
-          email &&
-          email !== user.email
-        ){
-
-          const {
-            data: emailData,
-            error: emailError
-          } =
-            await supabaseClient.auth.updateUser({
-              email: email
-            });
-
-
-          if(emailError){
-
-            console.error(
-              'Erreur modification e-mail :',
-              emailError
-            );
-
-            alert(
-              'Le prénom et le nom ont été enregistrés, mais l’e-mail n’a pas pu être modifié.'
-            );
-
-            return;
-          }
-
-
-          emailChanged = true;
-
-        }
-
-
-        state.user.firstName =
-          firstName;
-
-        state.user.lastName =
-          lastName;
-
-
-        /*
-          On recharge l'utilisateur réel depuis Supabase
-          pour ne pas afficher une adresse e-mail
-          qui n'aurait pas encore été confirmée.
-        */
-
-        const {
-          data: { user: updatedUser }
-        } =
-          await supabaseClient.auth.getUser();
-
-
-        if(updatedUser){
-          state.user.email =
-            updatedUser.email || state.user.email;
-        }
-
-
-        render();
-
-
-        if(emailChanged){
-
-          alert(
-            'Profil mis à jour. Si Supabase demande une confirmation du changement d’adresse e-mail, vérifie ta boîte mail.'
-          );
-
-        } else {
-
-          showToast(
-            'Profil mis à jour.',
-            'success'
-          );
-
-        }
-      };
-    }
-  const homeBrandButton = document.getElementById('homeBrandButton');
+      }
+    const homeBrandButton = document.getElementById('homeBrandButton');
     if(homeBrandButton){
 
       homeBrandButton.onclick = ()=>{
