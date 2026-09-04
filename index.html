@@ -4949,8 +4949,12 @@ function gradeChartHtml(routes){
           const oH = x.total ? (x.other / x.total) * 100 : 0;
 
           return `
-            <div class="gradebar-col">
-              <div class="tt-wrap">
+                          <div
+                class="gradebar-col"
+                data-goto-grade="${escapeHtml(x.g)}"
+                style="cursor:pointer;">
+
+                <div class="tt-wrap">
                 <div class="gradebar" style="height:${barH}%;">
                   <div class="seg seg-other" style="height:${oH}%"></div>
                   <div class="seg seg-todo" style="height:${tH}%"></div>
@@ -8725,6 +8729,30 @@ if(toggleNR){
     };
 
   });
+
+    document
+    .querySelectorAll('[data-goto-grade]')
+    .forEach(el=>{
+
+      el.onclick = ()=>{
+
+        const grade =
+          el.dataset.gotoGrade;
+
+        // Aller dans l'onglet Cotations
+        state.view = 'cotations';
+
+        // Ouvrir directement la cotation cliquée
+        state.openGrade = grade;
+
+        // Fermer le panneau de filtres éventuel
+        state.cotationsRegionsOpen = false;
+
+        render();
+
+      };
+
+    });
 
   document.querySelectorAll('[data-goto-lieu]').forEach(el=>{
     el.onclick = () => { state.nav.lieu = el.dataset.gotoLieu; state.nav.secteur = null; render(); };
