@@ -8704,13 +8704,22 @@ if(toggleNR){
 
     el.onclick = ()=>{
 
+      // Aller dans l'onglet Régions
+      state.view = 'regions';
+
+      // Ouvrir directement la région cliquée
       state.nav = {
         region: el.dataset.gotoRegion,
         lieu: null,
         secteur: null
       };
 
-      currentFilters().search = '';
+      // Fermer éventuellement un secteur précédemment ouvert
+      state.openRegionSector = null;
+      state.openRegionLieu = null;
+
+      // Enlever une ancienne recherche dans l'onglet Régions
+      state.filtersByView.regions.search = '';
 
       render();
     };
