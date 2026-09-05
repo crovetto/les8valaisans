@@ -3,7 +3,33 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>Les 8 Valaisans</title>
+
+<link
+  rel="manifest"
+  href="./manifest.webmanifest">
+
+<meta
+  name="theme-color"
+  content="#0B1220">
+
+<link
+  rel="apple-touch-icon"
+  href="./icon-192.png">
+
+<meta
+  name="apple-mobile-web-app-capable"
+  content="yes">
+
+<meta
+  name="apple-mobile-web-app-status-bar-style"
+  content="black-translucent">
+
+<meta
+  name="apple-mobile-web-app-title"
+  content="Les 8 Valaisans">
+
 <style>
 :root{
   --radius:14px;
@@ -9891,6 +9917,34 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () 
     applyTheme();
   }
 });
+
+
+if('serviceWorker' in navigator){
+
+  window.addEventListener(
+    'load',
+    ()=>{
+
+      navigator
+        .serviceWorker
+        .register('./service-worker.js')
+        .then(()=>{
+          console.log(
+            'Service Worker enregistré'
+          );
+        })
+        .catch(error=>{
+          console.error(
+            'Erreur Service Worker :',
+            error
+          );
+        });
+
+    }
+  );
+
+}
+
 
 </script>
 </body>
