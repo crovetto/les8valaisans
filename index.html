@@ -2982,6 +2982,7 @@ newRouteNewSecteur: false,
 newRouteRegion: '',
 newRouteLieu: '',
 newRouteSecteur: '',
+contextAddRoute: null,
 cotationsRegions: null,
 cotationsRegionsOpen: false,
 
@@ -3721,6 +3722,7 @@ function render(){
     viewHtml() +
     `</div>` +
     modalHtml() +
+    contextAddRouteHtml() +
     toastHtml();
   }
 
@@ -5714,6 +5716,7 @@ function regionsHtml(){
                   </span>
 
                 </button>
+                 
 
                 ${isOpen ? `
                   <div class="region-sector-routes">
@@ -5722,6 +5725,28 @@ function regionsHtml(){
                       .sort((a,b)=>a.voie.localeCompare(b.voie))
                       .map(routeRowHtml)
                       .join('')}
+
+                    ${state.user.canEdit ? `
+                      <div style="
+                        display:flex;
+                        justify-content:flex-end;
+                        margin-top:10px;
+                        padding-top:10px;
+                        border-top:1px solid var(--border);
+                      ">
+
+                        <button
+                          class="btn context-add-route-btn"
+                          data-add-route-region="${escapeHtml(region)}"
+                          data-add-route-lieu="${escapeHtml(lieuName)}"
+                          data-add-route-secteur="${escapeHtml(secteurName)}">
+
+                          + Ajouter une voie
+
+                        </button>
+
+                      </div>
+                    ` : ''}
 
                   </div>
                 ` : ''}
@@ -5739,6 +5764,8 @@ function regionsHtml(){
               ${escapeHtml(lieuName)}
             </div>
 
+          
+
             ${secteursHtml}
 
           </div>
@@ -5755,6 +5782,7 @@ function regionsHtml(){
         </div>
 
         ${crumbsHtml()}
+
 
         ${filterBar}
 
@@ -6198,6 +6226,210 @@ function paramsHtml(){
 }
 
 /* ---- Modal détail voie ---- */
+function contextAddRouteHtml(){
+
+  if(!state.contextAddRoute){
+    return '';
+  }
+
+  const context =
+    state.contextAddRoute;
+
+  return `
+    <div
+      class="modal-overlay"
+      id="contextAddRouteOverlay">
+
+      <div class="modal">
+
+        <button
+          class="modal-close"
+          id="contextAddRouteClose">
+          ✕
+        </button>
+
+
+        <div class="modal-title">
+          Ajouter une voie
+        </div>
+
+
+        <div class="modal-crumbs">
+
+          ${
+            context.region
+              ? escapeHtml(context.region)
+              : ''
+          }
+
+          ${
+            context.lieu
+              ? ` › ${escapeHtml(context.lieu)}`
+              : ''
+          }
+
+          ${
+            context.secteur
+              ? ` › ${escapeHtml(context.secteur)}`
+              : ''
+          }
+
+        </div>
+
+
+        <div class="profile-field">
+
+          <label>
+            Région
+          </label>
+
+          <input
+            type="text"
+            id="contextRouteRegion"
+            value="${escapeHtml(context.region || '')}"
+            ${context.region ? 'readonly' : ''}>
+
+        </div>
+
+
+        <div class="profile-field">
+
+          <label>
+            Lieu
+          </label>
+
+          <input
+            type="text"
+            id="contextRouteLieu"
+            value="${escapeHtml(context.lieu || '')}"
+            ${context.lieu ? 'readonly' : ''}>
+
+        </div>
+
+
+        <div class="profile-field">
+
+          <label>
+            Secteur
+          </label>
+
+          <input
+            type="text"
+            id="contextRouteSecteur"
+            value="${escapeHtml(context.secteur || '')}"
+            ${context.secteur ? 'readonly' : ''}>
+
+        </div>
+
+
+        <div class="profile-field">
+
+          <label>
+            Nom de la voie
+          </label>
+
+          <input
+            type="text"
+            id="contextRouteName"
+            placeholder="Nom de la voie">
+
+        </div>
+
+
+        <div class="profile-field">
+
+          <label>
+            Cotation
+          </label>
+
+          <select id="contextRouteGrade">
+
+            <option value="">
+              Sélectionner
+            </option>
+
+            <option value="8a">8a</option>
+            <option value="8a+">8a+</option>
+            <option value="8b">8b</option>
+            <option value="8b+">8b+</option>
+            <option value="8c">8c</option>
+            <option value="8c+">8c+</option>
+            <option value="9a">9a</option>
+            <option value="9a+">9a+</option>
+            <option value="9b">9b</option>
+            <option value="NR">NR</option>
+
+          </select>
+
+        </div>
+
+
+        <div class="profile-field">
+
+          <label>
+            Qualité topo
+          </label>
+
+          <select id="contextRouteQuality">
+
+            <option value="">
+              Non renseignée
+            </option>
+
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+
+          </select>
+
+        </div>
+
+
+        <div class="profile-field">
+
+          <label class="toggle">
+
+            <div
+              class="switch"
+              id="contextRouteVariantSwitch">
+
+              <div class="knob"></div>
+
+            </div>
+
+            Variante
+
+          </label>
+
+        </div>
+
+
+        <div class="btn-row">
+
+          <button
+            class="btn"
+            id="contextAddRouteSave">
+
+            Ajouter la voie
+
+          </button>
+
+          <button
+            class="btn"
+            id="contextAddRouteCancel">
+
+            Annuler
+
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+  `;
+}
+
 function modalHtml(){
   if(!state.modalRouteId) return '';
   const r = ROUTES.find(x=>x.id===state.modalRouteId);
@@ -8381,6 +8613,33 @@ if(adminSearchInput){
 
   });
 
+  document
+  .querySelectorAll('.context-add-route-btn')
+  .forEach(button=>{
+
+    button.onclick = (e)=>{
+
+      e.stopPropagation();
+
+      state.contextAddRoute = {
+
+        region:
+          button.dataset.addRouteRegion || '',
+
+        lieu:
+          button.dataset.addRouteLieu || '',
+
+        secteur:
+          button.dataset.addRouteSecteur || ''
+
+      };
+
+      render();
+
+    };
+
+  });
+
   document.querySelectorAll('[data-clear-filter]').forEach(el=>{
 
     el.onclick = ()=>{
@@ -8409,6 +8668,442 @@ if(adminSearchInput){
     };
 
   });
+
+
+// =====================================================
+// AJOUT RAPIDE D'UNE VOIE
+// =====================================================
+
+let contextRouteVariant = false;
+
+
+const contextRouteVariantSwitch =
+  document.getElementById(
+    'contextRouteVariantSwitch'
+  );
+
+if(contextRouteVariantSwitch){
+
+  contextRouteVariantSwitch.onclick = ()=>{
+
+    contextRouteVariant =
+      !contextRouteVariant;
+
+    contextRouteVariantSwitch
+      .classList.toggle(
+        'on',
+        contextRouteVariant
+      );
+
+  };
+
+}
+
+
+
+// FERMER
+
+const contextAddRouteClose =
+  document.getElementById(
+    'contextAddRouteClose'
+  );
+
+if(contextAddRouteClose){
+
+  contextAddRouteClose.onclick = ()=>{
+
+    state.contextAddRoute = null;
+
+    render();
+
+  };
+
+}
+
+
+
+// ANNULER
+
+const contextAddRouteCancel =
+  document.getElementById(
+    'contextAddRouteCancel'
+  );
+
+if(contextAddRouteCancel){
+
+  contextAddRouteCancel.onclick = ()=>{
+
+    state.contextAddRoute = null;
+
+    render();
+
+  };
+
+}
+
+
+
+// CLIC À L'EXTÉRIEUR
+
+const contextAddRouteOverlay =
+  document.getElementById(
+    'contextAddRouteOverlay'
+  );
+
+if(contextAddRouteOverlay){
+
+  contextAddRouteOverlay.onclick = (e)=>{
+
+    if(
+      e.target.id ===
+      'contextAddRouteOverlay'
+    ){
+
+      state.contextAddRoute = null;
+
+      render();
+
+    }
+
+  };
+
+}
+
+
+
+// ENREGISTRER
+
+const contextAddRouteSave =
+  document.getElementById(
+    'contextAddRouteSave'
+  );
+
+if(contextAddRouteSave){
+
+  contextAddRouteSave.onclick =
+    async ()=>{
+
+      const region =
+        document
+          .getElementById(
+            'contextRouteRegion'
+          )
+          .value
+          .trim();
+
+
+      const lieu =
+        document
+          .getElementById(
+            'contextRouteLieu'
+          )
+          .value
+          .trim();
+
+
+      const secteur =
+        document
+          .getElementById(
+            'contextRouteSecteur'
+          )
+          .value
+          .trim();
+
+
+      const voie =
+        document
+          .getElementById(
+            'contextRouteName'
+          )
+          .value
+          .trim();
+
+
+      const cotation =
+        document
+          .getElementById(
+            'contextRouteGrade'
+          )
+          .value;
+
+
+      const qualityValue =
+        document
+          .getElementById(
+            'contextRouteQuality'
+          )
+          .value;
+
+
+      const qualite =
+        qualityValue
+          ? parseInt(
+              qualityValue,
+              10
+            )
+          : null;
+
+
+
+      // -----------------------------
+      // Vérifications
+      // -----------------------------
+
+      if(!region){
+
+        showToast(
+          'La région est obligatoire.',
+          'error'
+        );
+
+        return;
+      }
+
+
+      if(!lieu){
+
+        showToast(
+          'Le lieu est obligatoire.',
+          'error'
+        );
+
+        return;
+      }
+
+
+      if(!secteur){
+
+        showToast(
+          'Le secteur est obligatoire.',
+          'error'
+        );
+
+        return;
+      }
+
+
+      if(!voie){
+
+        showToast(
+          'Le nom de la voie est obligatoire.',
+          'error'
+        );
+
+        return;
+      }
+
+
+      if(!cotation){
+
+        showToast(
+          'Sélectionne une cotation.',
+          'error'
+        );
+
+        return;
+      }
+
+
+
+      // -----------------------------
+      // Doublon
+      // -----------------------------
+
+      const duplicateRoute =
+        ROUTES.find(route =>
+
+          route.region
+            .trim()
+            .toLowerCase() ===
+            region.toLowerCase()
+
+          &&
+
+          route.lieu
+            .trim()
+            .toLowerCase() ===
+            lieu.toLowerCase()
+
+          &&
+
+          route.secteur
+            .trim()
+            .toLowerCase() ===
+            secteur.toLowerCase()
+
+          &&
+
+          route.voie
+            .trim()
+            .toLowerCase() ===
+            voie.toLowerCase()
+
+          &&
+
+          route.cotation === cotation
+
+        );
+
+
+      if(duplicateRoute){
+
+        showToast(
+          'Cette voie existe déjà dans la base.',
+          'error'
+        );
+
+        return;
+      }
+
+
+
+      // -----------------------------
+      // Générer ID
+      // -----------------------------
+
+      const maxRouteNumber =
+        ROUTES.reduce(
+          (max, route)=>{
+
+            const match =
+              String(route.id)
+                .match(/^R(\d+)$/);
+
+            if(!match){
+              return max;
+            }
+
+            return Math.max(
+              max,
+              parseInt(
+                match[1],
+                10
+              )
+            );
+
+          },
+          0
+        );
+
+
+      const newRouteId =
+        'R' +
+        String(
+          maxRouteNumber + 1
+        ).padStart(
+          4,
+          '0'
+        );
+
+
+
+      const newRoute = {
+
+        id: newRouteId,
+
+        region,
+
+        lieu,
+
+        secteur,
+
+        voie,
+
+        cotation,
+
+        qualite,
+
+        variante:
+          contextRouteVariant
+
+      };
+
+
+
+      // -----------------------------
+      // Supabase
+      // -----------------------------
+
+      const {
+        data,
+        error
+      } =
+        await supabaseClient
+          .from('routes')
+          .insert(newRoute)
+          .select(`
+            id,
+            region,
+            lieu,
+            secteur,
+            voie,
+            cotation,
+            qualite,
+            variante
+          `)
+          .single();
+
+
+
+      if(error){
+
+        console.error(
+          'Erreur ajout rapide voie :',
+          error
+        );
+
+
+        if(
+          error.code === '23505'
+        ){
+
+          showToast(
+            'Cette voie existe déjà dans la base.',
+            'error'
+          );
+
+        } else {
+
+          showToast(
+            'Impossible d’ajouter la voie.',
+            'error'
+          );
+
+        }
+
+        return;
+      }
+
+
+
+      // -----------------------------
+      // Ajouter localement
+      // -----------------------------
+
+      ROUTES.push(data);
+
+      ROUTES.sort(
+        (a,b)=>
+          a.id.localeCompare(b.id)
+      );
+
+
+      state.contextAddRoute = null;
+
+
+      render();
+
+
+      showToast(
+        'Voie ajoutée avec succès.',
+        'success'
+      );
+
+    };
+
+}
+
+
   // Recherche (les 3 champs partagent le même state, on garde le focus après re-render)
   ['searchInput','searchInput2','searchInput3'].forEach(id=>{
     const el = document.getElementById(id);
