@@ -15,8 +15,10 @@ jobs:
     steps:
       - name: Ping Supabase
         run: |
-          curl --fail \
-            --silent \
+          curl --fail-with-body \
             --show-error \
+            -X POST \
             -H "apikey: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}" \
-            "https://bgbuweuqjqhghrxdriln.supabase.co/rest/v1/routes?select=id&limit=1"
+            -H "Content-Type: application/json" \
+            -d '{}' \
+            "https://bgbuweuqjqhghrxdriln.supabase.co/rest/v1/rpc/keep_alive"
