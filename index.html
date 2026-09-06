@@ -1622,6 +1622,23 @@ input[type="range"].grade-range:focus::-moz-range-thumb{box-shadow:0 0 0 3px var
 .tooltip b{color:var(--title);display:block;margin-bottom:4px;font-size:12px;}
 .tooltip-below{bottom:auto;top:100%;left:0;transform:translateY(8px);}
 
+html[data-theme="light"] .tooltip{
+  background:rgba(255,255,255,.96);
+
+  border:1px solid rgba(124,99,255,.22);
+
+  color:#5F6170;
+
+  box-shadow:
+    0 8px 24px rgba(49,46,90,.10);
+
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+}
+html[data-theme="light"] .tooltip b{
+  color:#6547E8;
+}
+
 /* ---- Region horizontal bar chart ---- */
 .hbar-chart{display:flex;flex-direction:column;}
 .hbar-track{position:relative;flex:1;height:16px;min-width:60px;background:var(--gray-dim);border-radius:5px;}
