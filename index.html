@@ -78,25 +78,27 @@ html[data-theme="light"]{
   --text-dim:#6E6E73;
   --text-faint:#9A9AA1;
 
-  --title:#5e43d9;
-  --accent:#684cf0;
-  
+--title:#315FD9;
+--accent:#5A82F5;
+
+
+
   --green:#2FA07B;
   --green-dim:#E6F5EF;
 
   --yellow:#F2BC3B;
   --yellow-dim:#FBF2DC;
 
-  --gray:#B5AFD1;
-  --gray-dim:#ECE8F6;
+--gray:#A7B6D2;
+--gray-dim:#E7EDF7;
 
   --danger:#D45555;
   --danger-dim:#F9E4E4;
 }
 
 html[data-theme="light"] .app-header{
-  background:#1F1A3D;
-  border-bottom:1px solid #2C2652;
+  background:#17213F;
+  border-bottom:1px solid #26345C;
   color:#FFFFFF;
 }
 html[data-theme="light"] .app-header .menu-button,
@@ -106,7 +108,7 @@ html[data-theme="light"] .app-header .header-brand-button{
 }
 html[data-theme="light"] .app-header .menu-button:hover,
 html[data-theme="light"] .app-header .profile-button:hover{
-  background:#332C5B;
+  background:#22305A;
 }
 
 html[data-theme="light"] .card,
@@ -115,26 +117,74 @@ html[data-theme="light"] .auth-card{
   border:1px solid rgba(170, 184, 205, .55);
 }
 
+*{
+  box-sizing:border-box;
+}
 
-*{box-sizing:border-box;}
 html,
 body{
   margin:0;
   padding:0;
+
+  width:100%;
+  max-width:100%;
   min-height:100%;
+
+  overflow-x:hidden;
 }
 
 body{
   min-height:100vh;
-}
-body{
+
   background:var(--bg);
   color:var(--text);
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Helvetica,
+    Arial,
+    sans-serif;
+
   font-size:14px;
+
   -webkit-font-smoothing:antialiased;
 }
-.app{max-width:1180px;margin:0 auto;padding:0 16px 60px;}
+
+#app{
+  width:100%;
+  max-width:100%;
+  overflow-x:hidden;
+}
+
+.app{
+  width:100%;
+  max-width:1180px;
+
+  margin:0 auto;
+  padding:0 16px 60px;
+}
+
+@media(max-width:640px){
+
+  .app{
+    padding-left:12px;
+    padding-right:12px;
+  }
+
+  .card{
+    width:100%;
+    min-width:0;
+  }
+
+  .grid,
+  .stats-grid,
+  .dashboard-lists-grid{
+    min-width:0;
+  }
+
+}
 
 /* ---- Authentication ---- */
 
@@ -1612,7 +1662,7 @@ input[type="range"].grade-range:focus::-moz-range-thumb{box-shadow:0 0 0 3px var
 /* ---- Tooltips (survol des graphiques) ---- */
 .tt-wrap{position:relative;}
 .tooltip{
-  position:absolute;left:50%;bottom:100%;transform:translateX(-50%) translateY(-8px);
+  position:absolute;left:50%;bottom:100%;transform:translateX(-50%) translateY(-6px);
   background:#0B1220;border:1px solid var(--border);border-radius:8px;padding:9px 11px;
   font-size:11.5px;line-height:1.55;color:var(--text-dim);white-space:nowrap;
   opacity:0;visibility:hidden;transition:opacity .12s ease;pointer-events:none;z-index:60;
@@ -1625,18 +1675,19 @@ input[type="range"].grade-range:focus::-moz-range-thumb{box-shadow:0 0 0 3px var
 html[data-theme="light"] .tooltip{
   background:rgba(255,255,255,.96);
 
-  border:1px solid rgba(124,99,255,.22);
+  border:1px solid rgba(90,130,245,.22);
 
   color:#5F6170;
 
   box-shadow:
-    0 8px 24px rgba(49,46,90,.10);
+    0 8px 24px rgba(40,70,130,.10);
 
   backdrop-filter:blur(10px);
   -webkit-backdrop-filter:blur(10px);
 }
+
 html[data-theme="light"] .tooltip b{
-  color:#6547E8;
+  color:#315FD9;
 }
 
 /* ---- Region horizontal bar chart ---- */
