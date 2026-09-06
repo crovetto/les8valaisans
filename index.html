@@ -66,44 +66,47 @@ html[data-theme="dark"]{
 
 /* Mode clair */
 
+
 html[data-theme="light"]{
   --bg:#EEF1F7;
 
   --card:rgba(255,255,255,.88);
   --card-alt:rgba(247,248,252,.92);
-
   --border:#D9DFEA;
 
   --text:#1D1D1F;
   --text-dim:#6E6E73;
   --text-faint:#9A9AA1;
 
-  --title:#2F6FE4;
-  --accent:#5B8DFF;
+  --title:#5e43d9;
+  --accent:#684cf0;
+  
+  --green:#2FA07B;
+  --green-dim:#E6F5EF;
 
---green:#2FA47B;
---green-dim:#DDF4EB;
+  --yellow:#F2BC3B;
+  --yellow-dim:#FBF2DC;
 
---yellow:#F4BE37;
---yellow-dim:#FFF4CF;
-
---gray:#B3AFC7;
---gray-dim:#ECE8F3;
+  --gray:#B5AFD1;
+  --gray-dim:#ECE8F6;
 
   --danger:#D45555;
   --danger-dim:#F9E4E4;
 }
 
-html[data-theme="light"] body{
-  background:
-    radial-gradient(
-  circle at 12% 10%,
-  rgba(0, 14, 59, 0.07),
-  transparent 34%
-),
-    radial-gradient(circle at 85% 18%, rgba(145, 199, 255, .16), transparent 30%),
-    radial-gradient(circle at 70% 78%, rgba(255, 214, 153, .12), transparent 26%),
-    linear-gradient(180deg, #F3F0FB 0%, #EEF2F8 38%, #EAF0F6 100%);
+html[data-theme="light"] .app-header{
+  background:#1F1A3D;
+  border-bottom:1px solid #2C2652;
+  color:#FFFFFF;
+}
+html[data-theme="light"] .app-header .menu-button,
+html[data-theme="light"] .app-header .header-brand,
+html[data-theme="light"] .app-header .header-brand-button{
+  color:#FFFFFF;
+}
+html[data-theme="light"] .app-header .menu-button:hover,
+html[data-theme="light"] .app-header .profile-button:hover{
+  background:#332C5B;
 }
 
 html[data-theme="light"] .card,
