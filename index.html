@@ -3198,9 +3198,13 @@ function applyTheme(){ //Jour / Nuit / Système
   let resolvedTheme = preference;
 
   if(preference === 'system'){
-    resolvedTheme = window.matchMedia('(prefers-color-scheme: dark)').matches
-      ? 'dark'
-      : 'light';
+
+    const hour = new Date().getHours();
+
+    resolvedTheme =
+      hour >= 18 || hour < 7
+        ? 'dark'
+        : 'light';
   }
 
   document.documentElement.dataset.theme = resolvedTheme;
@@ -6242,7 +6246,7 @@ function paramsHtml(){
           <button
             class="theme-option ${state.prefs.theme === 'system' ? 'active' : ''}"
             data-theme-choice="system">
-            Système
+            Automatique
           </button>
 
           <button
@@ -10141,38 +10145,14 @@ setupAuthRecovery();
 initializeApp();
 
 window.addEventListener('resize', updateStatsGridLayout);
-window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+
+setInterval(() => {
+
   if(state.prefs.theme === 'system'){
     applyTheme();
   }
-});
 
-
-if('serviceWorker' in navigator){
-
-  window.addEventListener(
-    'load',
-    ()=>{
-
-      navigator
-        .serviceWorker
-        .register('./service-worker.js')
-        .then(()=>{
-          console.log(
-            'Service Worker enregistré'
-          );
-        })
-        .catch(error=>{
-          console.error(
-            'Erreur Service Worker :',
-            error
-          );
-        });
-
-    }
-  );
-
-}
+}, 60 * 1000);
 
 
 </script>
