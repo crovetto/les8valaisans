@@ -2528,7 +2528,26 @@ html[data-theme="light"] .tooltip b{
 }
 .link-more:hover{color:var(--title);}
 
-.footnote{font-size:11px;color:var(--text-faint);text-align:center;margin-top:24px;line-height:1.6;}
+.footnote{
+  margin-top:32px;
+  padding:18px 12px 4px;
+
+  text-align:center;
+
+  font-size:11px;
+  line-height:1.7;
+
+  color:var(--text-faint);
+}
+
+.footnote strong{
+  color:var(--text-dim);
+  font-weight:600;
+}
+.settings-footnote{
+  margin-top:8px;
+  padding:4px 0 0;
+}
 
 @media(max-width:640px){
   .modal-facts{grid-template-columns:1fr 1fr;}
@@ -4778,6 +4797,22 @@ function addRouteHtml(){
   `;
 }
 
+function footerHtml(){
+  return `
+    <div class="footnote">
+      <div>
+        <strong>Les 8 Valaisans</strong> ·
+        Site développé par Gianna Crovetto
+      </div>
+
+      <div>
+        Base de données des voies constituée avec la contribution de Samuel Ometz
+      </div>
+
+    </div>
+  `;
+}
+
 function accueilHtml(){
   const routes = scopedRoutes();
   const stats = computeStats(routes);
@@ -4872,6 +4907,7 @@ function accueilHtml(){
       ${todoPreviewHtml()}
 
     </div>
+    ${footerHtml()}
   `;
 }
 
@@ -5385,6 +5421,7 @@ function cotationsHtml(){
         ` : ''}
 
       </div>
+      ${footerHtml()}
     `;
 
   }).join('');
@@ -6012,7 +6049,9 @@ function regionsHtml(){
       <div class="route-list-scroll">
         ${routes.map(routeRowHtml).join('') || `<div class="empty-state">Aucune voie ne correspond aux filtres.</div>`}
       </div>
-    </div>`;
+    </div>
+    ${footerHtml()}
+    `;
 }
 
 function crumbsHtml(){
@@ -6393,9 +6432,10 @@ function paramsHtml(){
         `}
       </div>
     </div>
-    <div class="footnote">
-      Données communes synchronisées avec Supabase · Données personnelles sauvegardées sur ton compte et synchronisées entre appareils.
-    </div>
+    ${footerHtml()}
+<div class="footnote settings-footnote">
+  Données personnelles synchronisées avec Supabase
+</div>
     `;
 }
 
