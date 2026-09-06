@@ -2223,6 +2223,16 @@ html[data-theme="light"] .tooltip b{
   }
 }
 
+/* ---- Auth legal ---- */
+.auth-legal a{
+  color:var(--title);
+  text-decoration:none;
+}
+
+.auth-legal a:hover{
+  text-decoration:underline;
+}
+
 /* ---- Todo view ---- */
 .empty-state{color:var(--text-dim);font-size:13px;padding:30px 10px;text-align:center;}
 
@@ -4104,8 +4114,13 @@ function authHtml(){
 
         <div class="auth-legal">
           En continuant, tu acceptes nos
-          <span>Conditions d'utilisation</span><br>
-          et notre <span>Politique de confidentialité</span>.
+          <a href="./conditions.html" target="_blank">
+            Conditions d'utilisation
+          </a><br>
+          et notre
+          <a href="./confidentialite.html" target="_blank">
+            Politique de confidentialité
+          </a>.
         </div>
 
       </div>
@@ -6434,6 +6449,34 @@ function paramsHtml(){
         `}
       </div>
     </div>
+
+    <div class="card">
+
+  <div class="card-title">
+    <span class="dot"></span>
+    Contact
+  </div>
+
+  <div class="param-row">
+
+    <div class="param-desc" style="margin-top:0;margin-bottom:8px;">
+      Pour toute question concernant le site : :
+    </div>
+
+    <a
+      href="mailto:les8valaisans@gmail.com"
+      style="
+        color:var(--accent);
+        font-weight:600;
+        text-decoration:none;
+      ">
+      les8valaisans@gmail.com
+    </a>
+
+  </div>
+
+</div>
+
     ${footerHtml()}
 <div class="footnote settings-footnote">
   Données personnelles synchronisées avec Supabase
