@@ -923,6 +923,24 @@ body{
   background:var(--card);
 }
 
+@media (max-width: 640px){
+
+.dashboard-stat.percentage{
+  grid-template-columns:minmax(0,1fr) 46px;
+  column-gap:8px;
+}
+
+.dashboard-percent-ring{
+  width:42px;
+  height:42px;
+}
+
+.dashboard-percent-ring::after{
+  inset:7px;
+}
+
+}
+
 .dashboard-stat{
   display:grid;
   grid-template-columns:48px minmax(0,1fr);
