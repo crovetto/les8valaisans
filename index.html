@@ -1640,6 +1640,37 @@ input[type="range"].grade-range:focus::-moz-range-thumb{box-shadow:0 0 0 3px var
   align-items:flex-end;
 }
 .gradebar{width:100%;max-width:26px;display:flex;flex-direction:column;justify-content:flex-end;border-radius:4px 4px 0 0;overflow:hidden;background:var(--gray-dim);}
+.gradebar-topvalue{
+  display:none;
+}
+
+@media (hover:none) and (pointer:coarse){
+
+  .gradebar-col > .tt-wrap{
+    width:34px;
+    height:100%;
+    display:flex;
+    flex-direction:column;
+    justify-content:flex-end;
+    align-items:center;
+    gap:4px;
+  }
+
+  .gradebar-topvalue{
+    display:block;
+    font-size:10px;
+    color:var(--text-dim);
+    text-align:center;
+    line-height:1.1;
+    white-space:nowrap;
+  }
+
+  .tooltip{
+    display:none;
+  }
+
+}
+
 .gradebar .seg{width:100%;flex-shrink:0;}
 .gradebar .seg-done{background:var(--green);}
 .gradebar .seg-todo{background:var(--yellow);}
@@ -1673,6 +1704,46 @@ input[type="range"].grade-range:focus::-moz-range-thumb{box-shadow:0 0 0 3px var
 .tt-wrap:hover .tooltip{opacity:1;visibility:visible;}
 .tooltip b{color:var(--title);display:block;margin-bottom:4px;font-size:12px;}
 .tooltip-below{bottom:auto;top:100%;left:0;transform:translateY(8px);}
+
+/* ---- Valeurs de progression visibles sur téléphone ---- */
+
+.mobile-progress-value{
+  display:none;
+}
+
+@media (hover:none) and (pointer:coarse){
+
+  .mobile-progress-value{
+    display:block;
+    font-size:10px;
+    color:var(--text-dim);
+    text-align:center;
+    margin-top:3px;
+    white-space:nowrap;
+  }
+
+  .region-mobile-progress{
+    display:block;
+    text-align:right;
+    min-width:54px;
+  }
+
+  .desktop-region-total{
+    display:none;
+  }
+
+  .tooltip{
+    display:none;
+  }
+
+  .lieu-name{
+    width:95px;
+  }
+
+  .lieu-total{
+    width:55px;
+  }
+} 
 
 html[data-theme="light"] .tooltip{
   background:rgba(255,255,255,.96);
@@ -5173,6 +5244,10 @@ function gradeChartHtml(routes){
                 style="cursor:pointer;">
 
                 <div class="tt-wrap">
+
+                <div class="gradebar-topvalue">
+                  ${x.done}/${x.total}
+                </div>
                 <div class="gradebar" style="height:${barH}%;">
                   <div class="seg seg-other" style="height:${oH}%"></div>
                   <div class="seg seg-todo" style="height:${tH}%"></div>
@@ -5192,11 +5267,23 @@ function gradeChartHtml(routes){
 
             </div>
 
-      <div class="gradebar-label-row">
-        ${byGrade.map(x=>`
-          <div class="gradebar-lbl">${escapeHtml(x.g)}</div>
-        `).join('')}
-      </div>
+            <div class="gradebar-label-row">
+
+              ${byGrade.map(x=>{
+
+                return `
+                  <div class="gradebar-lbl">
+
+                    <div>
+                      ${escapeHtml(x.g)}
+                    </div>
+
+                  </div>
+                `;
+
+              }).join('')}
+
+              </div>
 
     </div>
 
@@ -5253,7 +5340,17 @@ const niceMax = maxTotal;
               <div>Total : ${x.total}</div>
             </div>
           </div>
-          <div class="lieu-total">${x.total}</div>
+          <div class="lieu-total">
+
+            <span class="desktop-region-total">
+              ${x.total}
+            </span>
+
+            <span class="mobile-progress-value region-mobile-progress">
+              ${x.done}/${x.total}
+            </span>
+
+            </div>
           <div class="lieu-chev">${iconChevron()}</div>
         </div>`;
       }).join('')}
@@ -6090,7 +6187,7 @@ function routeRowHtml(r){
       <div class="route-main">
         <div class="route-name">${escapeHtml(r.voie)}</div>
         <div class="route-sub">
-          <span class="grade-pill">${escapeHtml(r.cotation)}</span>
+          <span class="grade-pill">${escapeHtml(r.cotatiofn)}</span>
           <span>Qualité topo : ${qualiteLabel(r.qualite)}</span>
           ${r.variante ? `<span class="variant-badge">Variante</span>` : ''}
         </div>
