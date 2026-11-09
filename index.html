@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
 
 <title>Les 8 Valaisans</title>
 
@@ -1404,40 +1403,22 @@ input[type="range"].grade-range:focus::-moz-range-thumb{box-shadow:0 0 0 3px var
 }
 
 
-.sector-season-icons svg,
-.sector-seasons-editor svg {
-  width: 17px;
-  height: 17px;
-  stroke-width: 2.3;
-  flex-shrink: 0;
-  vertical-align: middle;
-}
-
-.sector-admin-edit {
-  border: 1px solid var(--border);
-  border-radius: 5px;
-  background: transparent;
-  color: var(--text);
-  padding: 3px 7px;
-  cursor: pointer;
-  font-size: 12px;
-}
-
-.sector-seasons-editor {
-  padding: 10px 14px;
-  margin-bottom: 8px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-}
-
-.sector-seasons-editor label {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  margin: 5px 12px 5px 0;
-  font-size: 13px;
-}
-
+.sector-season-icons svg {width:16px;height:16px;vertical-align:middle}
+.region-sector {position:relative}
+.sector-admin-control {position:absolute;left:0;top:9px;z-index:5}
+.sector-admin-edit {width:24px;height:24px;display:grid;place-items:center;border:0;border-radius:6px;background:transparent;color:var(--text-dim);cursor:pointer;padding:3px}
+.sector-admin-edit:hover {background:var(--card-alt);color:var(--accent)}
+.sector-admin-edit svg {width:15px;height:15px}
+.sector-seasons-editor {position:absolute;left:0;top:28px;z-index:50;width:min(310px,calc(100vw - 35px));padding:12px;background:var(--card);border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.18)}
+.sector-seasons-editor-title {display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:700;margin-bottom:10px}
+.sector-seasons-grid {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+.sector-season-choice {display:flex;flex-direction:column;align-items:center;gap:5px;padding:9px 2px;border:1px solid var(--border);border-radius:9px;background:transparent;color:var(--text);font:inherit;font-size:10px;cursor:pointer}
+.sector-season-choice svg {width:21px;height:21px}
+.sector-season-choice.selected {background:var(--card-alt);border-color:var(--accent)}
+.sector-season-choice:focus-visible {outline:2px solid var(--accent);outline-offset:2px}
+.sector-season-actions {display:flex;justify-content:flex-end;gap:8px;margin-top:11px}
+.sector-season-actions button {border:1px solid var(--border);background:var(--card-alt);color:var(--text);border-radius:7px;padding:7px 10px;font:inherit;font-size:12px;cursor:pointer}
+.sector-season-actions .sector-season-save {background:var(--accent);color:white;border-color:var(--accent)}
 .region-sector-name{
   min-width:0;
 
@@ -2738,6 +2719,7 @@ html[data-theme="light"] .tooltip b{
 }
 
 </style>
+<script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
 </head>
 <body>
 <div id="app"></div>
@@ -2927,11 +2909,14 @@ async function loadUserRoutes(){
 let SECTOR_SEASONS = new Map();
 
 const SEASON_OPTIONS = [
-  {id: 'spring', label: 'Printemps', icon: 'flower-2', color: '#d86ba3'},
-  {id: 'summer', label: 'Été', icon: 'sun', color: '#f5a000'},
-  {id: 'autumn', label: 'Automne', icon: 'leaf', color: '#c87b36'},
-  {id: 'winter', label: 'Hiver', icon: 'snowflake', color: '#52a9d7'}
+  {id:'spring',label:'Printemps',icon:'flower-2',color:'#d86ba3'},
+  {id:'summer',label:'Été',icon:'sun',color:'#f5a000'},
+  {id:'autumn',label:'Automne',icon:'leaf',color:'#c87b36'},
+  {id:'winter',label:'Hiver',icon:'snowflake',color:'#52a9d7'}
 ];
+function seasonIcon(s) {
+  return `<i data-lucide="${s.icon}" style="color:${s.color}" aria-hidden="true"></i>`;
+}
 
 function sectorKey(region, lieu, secteur) {
   return JSON.stringify([region, lieu, secteur]);
@@ -2945,11 +2930,7 @@ function sectorSeasonsIcons(region, lieu, secteur) {
     ? `<span class="sector-season-icons">
         ${SEASON_OPTIONS
           .filter(s => selected.includes(s.id))
-          .map(s => `
-            <i data-lucide="${s.icon}"
-              style="color:${s.color}"
-              title="${s.label}"></i>
-          `)
+          .map(s => `<span title="${s.label}">${seasonIcon(s)}</span>`)
           .join('')}
        </span>`
     : '';
@@ -4120,8 +4101,7 @@ function render(){
         toastHtml();
   }
 
-  // Transformer les icônes Lucide en SVG
-  lucide.createIcons();
+  if(window.lucide) lucide.createIcons();
   bindEvents();
   updateStatsGridLayout();
 }
@@ -6189,49 +6169,40 @@ function regionsHtml(){
                 </button>
                  
                 ${state.user?.role === 'admin' ? `
-  <div style="padding:0 0 7px 26px">
-    <button
-      type="button"
-      class="sector-admin-edit"
-      data-edit-sector-seasons="${escapeHtml(key)}">
-      ⚙ Saisons
-    </button>
-  </div>
-
-  ${state.editingSectorSeasons === key ? `
-    <div class="sector-seasons-editor"
-         data-sector-seasons-form="${escapeHtml(key)}">
-
-      <strong>Saisonnalité — ${escapeHtml(secteurName)}</strong>
-
-      <div>
-        ${SEASON_OPTIONS.map(s => `
-          <label>
-            <input type="checkbox"
-                   value="${s.id}"
-                   ${(SECTOR_SEASONS.get(
-                     sectorKey(region, lieuName, secteurName)
-                   ) || []).includes(s.id) ? 'checked' : ''}>
-            <i data-lucide="${s.icon}"
-              style="color:${s.color}"></i>
-            ${s.label}
-          </label>
-        `).join('')}
-      </div>
-
-      <button type="button"
-              data-save-sector-seasons="${escapeHtml(key)}">
-        Enregistrer
-      </button>
-
-      <button type="button"
-              data-cancel-sector-seasons>
-        Annuler
-      </button>
-
-    </div>
-  ` : ''}
-` : ''}
+                  <div class="sector-admin-control">
+                    <button type="button" class="sector-admin-edit"
+                      title="Modifier la saisonnalité" aria-label="Modifier les saisons"
+                      data-edit-sector-seasons="${escapeHtml(key)}">
+                      <i data-lucide="pencil"></i>
+                    </button>
+                    ${state.editingSectorSeasons === key ? `
+                      <div class="sector-seasons-editor" data-sector-seasons-form="${escapeHtml(key)}">
+                        <div class="sector-seasons-editor-title">
+                          <span>Saisonnalité</span>
+                          <button type="button" class="sector-admin-edit"
+                            data-cancel-sector-seasons aria-label="Fermer">×</button>
+                        </div>
+                        <div class="sector-seasons-grid">
+                          ${SEASON_OPTIONS.map(s => {
+                            const active = (SECTOR_SEASONS.get(
+                              sectorKey(region, lieuName, secteurName)
+                            ) || []).includes(s.id);
+                            return `<button type="button"
+                              class="sector-season-choice ${active ? 'selected' : ''}"
+                              data-season-choice="${s.id}" aria-pressed="${active}">
+                              ${seasonIcon(s)}<span>${s.label}</span>
+                            </button>`;
+                          }).join('')}
+                        </div>
+                        <div class="sector-season-actions">
+                          <button type="button" data-cancel-sector-seasons>Annuler</button>
+                          <button type="button" class="sector-season-save"
+                            data-save-sector-seasons="${escapeHtml(key)}">Enregistrer</button>
+                        </div>
+                      </div>
+                    ` : ''}
+                  </div>
+                ` : ''}
 
                 ${isOpen ? `
                   <div class="region-sector-routes">
@@ -10139,6 +10110,14 @@ document.querySelectorAll('[data-cancel-sector-seasons]').forEach(el => {
   };
 });
 
+document.querySelectorAll('[data-season-choice]').forEach(el => {
+  el.onclick = () => {
+    const active = el.getAttribute('aria-pressed') !== 'true';
+    el.setAttribute('aria-pressed', String(active));
+    el.classList.toggle('selected', active);
+  };
+});
+
 document.querySelectorAll('[data-save-sector-seasons]').forEach(el => {
   el.onclick = async () => {
     if (state.user?.role !== 'admin') return;
@@ -10147,8 +10126,8 @@ document.querySelectorAll('[data-save-sector-seasons]').forEach(el => {
     const form = el.closest('[data-sector-seasons-form]');
 
     const selected = Array.from(
-      form.querySelectorAll('input[type="checkbox"]:checked')
-    ).map(input => input.value);
+      form.querySelectorAll('[data-season-choice][aria-pressed="true"]')
+    ).map(input => input.dataset.seasonChoice);
 
     const [region, lieu, secteur] = key.split('||');
 
@@ -10627,7 +10606,7 @@ async function initializeApp(){
     }
 
     await loadSectorSeasons();
-
+    
     const profileLoaded =
       await loadUserProfile(
         session.user
