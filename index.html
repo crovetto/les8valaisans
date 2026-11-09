@@ -4490,10 +4490,10 @@ function viewHtml(){
   if(state.view === 'accueil') return accueilHtml();
   if(state.view === 'regions') return regionsHtml();
   if(state.view === 'cotations') return cotationsHtml();
-  if(state.view === 'todo') return todoHtml();
+  if(state.view === 'todo') return `${todoHtml()}${footerHtml()}`;
   if(state.view === 'params') return paramsHtml();
 if(state.view === 'profile') return profileHtml();
-if(state.view === 'addRoute') return addRouteHtml();
+if(state.view === 'addRoute') return `${addRouteHtml()}${footerHtml()}`;
 if(state.view === 'admin') return adminHtml();
 return '';
 }
@@ -5692,7 +5692,6 @@ function cotationsHtml(){
         ` : ''}
 
       </div>
-      ${footerHtml()}
     `;
 
   }).join('');
@@ -5812,6 +5811,7 @@ function cotationsHtml(){
       </div>
 
     </div>
+    ${footerHtml()}
   `;
 }
 
@@ -5893,7 +5893,7 @@ function regionSearchResults(search){
   };
 }
 
-function regionsHtml(){
+function regionsContentHtml(){
   const {region, lieu, secteur} = state.nav;
   
   const filterBar = `
@@ -6297,12 +6297,6 @@ function regionsHtml(){
 
         ${filterBar}
 
-        <div class="legend">
-          <span><i class="sw done"></i>Faites</span>
-          <span><i class="sw todo"></i>À faire</span>
-          <span><i class="sw other"></i>Restantes</span>
-        </div>
-
         ${lieuxHtml ||
           `<div class="empty-state">
             Aucune voie ne correspond aux filtres.
@@ -6350,8 +6344,12 @@ function regionsHtml(){
         ${routes.map(routeRowHtml).join('') || `<div class="empty-state">Aucune voie ne correspond aux filtres.</div>`}
       </div>
     </div>
-    ${footerHtml()}
     `;
+}
+
+
+function regionsHtml(){
+  return `${regionsContentHtml()}${footerHtml()}`;
 }
 
 function crumbsHtml(){
