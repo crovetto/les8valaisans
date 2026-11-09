@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
 
 <title>Les 8 Valaisans</title>
 
@@ -1386,6 +1387,55 @@ input[type="range"].grade-range:focus::-moz-range-thumb{box-shadow:0 0 0 3px var
 
 .region-sector-head:hover .region-sector-name{
   color:var(--accent);
+}
+
+.sector-name-content {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.sector-season-icons {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+
+.sector-season-icons svg,
+.sector-seasons-editor svg {
+  width: 17px;
+  height: 17px;
+  stroke-width: 2.3;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.sector-admin-edit {
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text);
+  padding: 3px 7px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.sector-seasons-editor {
+  padding: 10px 14px;
+  margin-bottom: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.sector-seasons-editor label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 5px 12px 5px 0;
+  font-size: 13px;
 }
 
 .region-sector-name{
@@ -2874,6 +2924,76 @@ async function loadUserRoutes(){
   return true;
 }
 
+let SECTOR_SEASONS = new Map();
+
+const SEASON_OPTIONS = [
+  {id: 'spring', label: 'Printemps', icon: 'flower-2', color: '#d86ba3'},
+  {id: 'summer', label: 'Été', icon: 'sun', color: '#f5a000'},
+  {id: 'autumn', label: 'Automne', icon: 'leaf', color: '#c87b36'},
+  {id: 'winter', label: 'Hiver', icon: 'snowflake', color: '#52a9d7'}
+];
+
+function sectorKey(region, lieu, secteur) {
+  return JSON.stringify([region, lieu, secteur]);
+}
+
+function sectorSeasonsIcons(region, lieu, secteur) {
+  const selected =
+    SECTOR_SEASONS.get(sectorKey(region, lieu, secteur)) || [];
+
+  return selected.length
+    ? `<span class="sector-season-icons">
+        ${SEASON_OPTIONS
+          .filter(s => selected.includes(s.id))
+          .map(s => `
+            <i data-lucide="${s.icon}"
+              style="color:${s.color}"
+              title="${s.label}"></i>
+          `)
+          .join('')}
+       </span>`
+    : '';
+}
+
+async function loadSectorSeasons() {
+  const {data, error} = await supabaseClient
+    .from('sector_seasons')
+    .select('region,lieu,secteur,seasons');
+
+  if (error) {
+    console.error('Erreur chargement saisons :', error);
+    return;
+  }
+
+  SECTOR_SEASONS = new Map(
+    (data || []).map(s => [
+      sectorKey(s.region, s.lieu, s.secteur),
+      s.seasons || []
+    ])
+  );
+}
+
+async function saveSectorSeasons(region, lieu, secteur, seasons) {
+  if (state.user?.role !== 'admin') return false;
+
+  const {error} = await supabaseClient
+    .from('sector_seasons')
+    .upsert(
+      {region, lieu, secteur, seasons},
+      {onConflict: 'region,lieu,secteur'}
+    );
+
+  if (error) {
+    alert('Erreur : ' + error.message);
+    return false;
+  }
+
+  SECTOR_SEASONS.set(sectorKey(region, lieu, secteur), seasons);
+  state.editingSectorSeasons = null;
+  render();
+  return true;
+}
+
 const GRADE_ORDER = ["8a","8a+","8b","8b+","8c","8c+","9a","9a+","9b"];
 function isRatedGrade(cotation){ return GRADE_ORDER.includes(cotation); }
 function gradeIndex(cotation){ return GRADE_ORDER.indexOf(cotation); }
@@ -3177,7 +3297,10 @@ const state = {
   lastName: '',
   email: '',
   role: 'user',
-  canEdit: false
+  canEdit: false,
+  openRegionSector: null,
+  editingSectorSeasons: null
+
 },
 
   menuOpen: false,
@@ -3997,6 +4120,8 @@ function render(){
         toastHtml();
   }
 
+  // Transformer les icônes Lucide en SVG
+  lucide.createIcons();
   bindEvents();
   updateStatsGridLayout();
 }
@@ -6028,7 +6153,10 @@ function regionsHtml(){
                   data-toggle-region-sector="${escapeHtml(key)}">
 
                   <span class="region-sector-name">
-                    ${escapeHtml(secteurName)}
+                    <span class="sector-name-content">
+                      ${sectorSeasonsIcons(region, lieuName, secteurName)}
+                      <span>${escapeHtml(secteurName)}</span>
+                    </span>
                   </span>
 
                   <span class="region-sector-bar">
@@ -6060,6 +6188,50 @@ function regionsHtml(){
 
                 </button>
                  
+                ${state.user?.role === 'admin' ? `
+  <div style="padding:0 0 7px 26px">
+    <button
+      type="button"
+      class="sector-admin-edit"
+      data-edit-sector-seasons="${escapeHtml(key)}">
+      ⚙ Saisons
+    </button>
+  </div>
+
+  ${state.editingSectorSeasons === key ? `
+    <div class="sector-seasons-editor"
+         data-sector-seasons-form="${escapeHtml(key)}">
+
+      <strong>Saisonnalité — ${escapeHtml(secteurName)}</strong>
+
+      <div>
+        ${SEASON_OPTIONS.map(s => `
+          <label>
+            <input type="checkbox"
+                   value="${s.id}"
+                   ${(SECTOR_SEASONS.get(
+                     sectorKey(region, lieuName, secteurName)
+                   ) || []).includes(s.id) ? 'checked' : ''}>
+            <i data-lucide="${s.icon}"
+              style="color:${s.color}"></i>
+            ${s.label}
+          </label>
+        `).join('')}
+      </div>
+
+      <button type="button"
+              data-save-sector-seasons="${escapeHtml(key)}">
+        Enregistrer
+      </button>
+
+      <button type="button"
+              data-cancel-sector-seasons>
+        Annuler
+      </button>
+
+    </div>
+  ` : ''}
+` : ''}
 
                 ${isOpen ? `
                   <div class="region-sector-routes">
@@ -9950,6 +10122,45 @@ if(toggleNR){
   };
 }
 
+
+document.querySelectorAll('[data-edit-sector-seasons]').forEach(el => {
+  el.onclick = () => {
+    const key = el.dataset.editSectorSeasons;
+    state.editingSectorSeasons =
+      state.editingSectorSeasons === key ? null : key;
+    render();
+  };
+});
+
+document.querySelectorAll('[data-cancel-sector-seasons]').forEach(el => {
+  el.onclick = () => {
+    state.editingSectorSeasons = null;
+    render();
+  };
+});
+
+document.querySelectorAll('[data-save-sector-seasons]').forEach(el => {
+  el.onclick = async () => {
+    if (state.user?.role !== 'admin') return;
+
+    const key = el.dataset.saveSectorSeasons;
+    const form = el.closest('[data-sector-seasons-form]');
+
+    const selected = Array.from(
+      form.querySelectorAll('input[type="checkbox"]:checked')
+    ).map(input => input.value);
+
+    const [region, lieu, secteur] = key.split('||');
+
+    el.disabled = true;
+
+    const saved = await saveSectorSeasons(
+      region, lieu, secteur, selected
+    );
+
+    if (!saved) el.disabled = false;
+  };
+});
   document
   .querySelectorAll('[data-toggle-region-sector]')
   .forEach(el=>{
@@ -10414,6 +10625,8 @@ async function initializeApp(){
 
       return;
     }
+
+    await loadSectorSeasons();
 
     const profileLoaded =
       await loadUserProfile(
