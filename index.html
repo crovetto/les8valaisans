@@ -1412,6 +1412,35 @@ input[type="range"].grade-range:focus::-moz-range-thumb{box-shadow:0 0 0 3px var
 
 .sector-season-icons svg {width:16px;height:16px;vertical-align:middle}
 .region-sector {position:relative;overflow:visible}
+
+.region-card-heading {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+}
+.region-card-heading .card-title {margin-bottom:0}
+.season-mode-toggle {
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  flex-shrink:0;
+  border:1px solid var(--border);
+  background:transparent;
+  color:var(--text-dim);
+  border-radius:8px;
+  padding:6px 9px;
+  font:inherit;
+  font-size:11px;
+  cursor:pointer;
+}
+.season-mode-toggle svg {width:15px;height:15px}
+.season-mode-toggle:hover, .season-mode-toggle.active {
+  color:var(--accent);
+  border-color:var(--accent);
+  background:var(--card-alt);
+}
+
 .sector-admin-control {position:relative;display:inline-flex;align-items:center;flex-shrink:0;z-index:5}
 .sector-admin-edit {width:24px;height:24px;display:grid;place-items:center;border:0;border-radius:6px;background:transparent;color:var(--text-dim);cursor:pointer;padding:3px}
 .sector-admin-edit:hover {background:var(--card-alt);color:var(--accent)}
@@ -1453,8 +1482,7 @@ input[type="range"].grade-range:focus::-moz-range-thumb{box-shadow:0 0 0 3px var
 .region-sector.complete .region-sector-head {
   background:color-mix(in srgb, var(--green) 12%, transparent);
   border-radius:8px;
-  padding-left:7px;
-  padding-right:7px;
+  /* Pas de padding additionnel : les textes ne bougent pas à 100 %. */
 }
 .region-sector.complete .region-sector-progress {
   color:var(--green);
@@ -2973,6 +3001,8 @@ async function saveSectorSeasons(region, lieu, secteur, seasons) {
   }
 
   SECTOR_SEASONS.set(sectorKey(region, lieu, secteur), seasons);
+  // Fermer uniquement le sélecteur du secteur, pas le mode de réglage.
+  state.sectorSeasonEditMode = true;
   state.editingSectorSeasons = null;
   render();
   return true;
@@ -3283,7 +3313,8 @@ const state = {
   role: 'user',
   canEdit: false,
   openRegionSector: null,
-  editingSectorSeasons: null
+  editingSectorSeasons: null,
+  sectorSeasonEditMode: false
 
 },
 
@@ -6139,7 +6170,7 @@ function regionsHtml(){
                     <span class="sector-name-content">
                       ${sectorSeasonsIcons(region, lieuName, secteurName)}
                       <span class="sector-name-text">${escapeHtml(secteurName)}</span>
-                ${state.user?.role === 'admin' ? `
+                ${state.user?.role === 'admin' && state.sectorSeasonEditMode ? `
                   <div class="sector-admin-control">
                     <button type="button" class="sector-admin-edit"
                       title="Modifier la saisonnalité" aria-label="Modifier les saisons"
@@ -6245,9 +6276,20 @@ function regionsHtml(){
     return `
       <div class="card">
 
-        <div class="card-title">
-          <span class="dot"></span>
-          ${escapeHtml(region)}
+        <div class="region-card-heading">
+          <div class="card-title">
+            <span class="dot"></span>
+            ${escapeHtml(region)}
+          </div>
+          ${state.user?.role === 'admin' ? `
+            <button type="button" class="season-mode-toggle ${state.sectorSeasonEditMode ? 'active' : ''}"
+              data-toggle-season-mode
+              aria-pressed="${state.sectorSeasonEditMode}"
+              title="${state.sectorSeasonEditMode ? 'Terminer le réglage des saisons' : 'Régler les saisons des secteurs'}">
+              <i data-lucide="settings-2"></i>
+              <span>${state.sectorSeasonEditMode ? 'Terminer' : 'Saisons'}</span>
+            </button>
+          ` : ''}
         </div>
 
         ${crumbsHtml()}
@@ -10077,6 +10119,16 @@ if(toggleNR){
 }
 
 
+document.querySelectorAll('[data-toggle-season-mode]').forEach(el => {
+  el.onclick = (event) => {
+    event.stopPropagation();
+    if (state.user?.role !== 'admin') return;
+    state.sectorSeasonEditMode = !state.sectorSeasonEditMode;
+    state.editingSectorSeasons = null;
+    render();
+  };
+});
+
 document.querySelectorAll('.sector-seasons-editor').forEach(el => {
   el.onclick = event => event.stopPropagation();
 });
@@ -10084,6 +10136,7 @@ document.querySelectorAll('[data-edit-sector-seasons]').forEach(el => {
   el.onclick = (event) => {
     event.stopPropagation();
     const key = el.dataset.editSectorSeasons;
+    if (!state.sectorSeasonEditMode) return;
     state.editingSectorSeasons =
       state.editingSectorSeasons === key ? null : key;
     render();
