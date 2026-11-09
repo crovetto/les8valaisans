@@ -1362,7 +1362,7 @@ input[type="range"].grade-range:focus::-moz-range-thumb{box-shadow:0 0 0 3px var
 .region-sector-head{
   width:100%;
   display:grid;
-  grid-template-columns:170px minmax(100px,1fr) 38px 20px;
+  grid-template-columns:minmax(0,1fr) 52px 20px;
   align-items:center;
   gap:12px;
 
@@ -1406,12 +1406,12 @@ input[type="range"].grade-range:focus::-moz-range-thumb{box-shadow:0 0 0 3px var
   flex-shrink:0;
 }
 .sector-season-icons > span {display:flex;align-items:center;justify-content:center}
-.sector-name-content {gap:5px}
+.sector-name-content {gap:5px;width:100%;overflow:visible}
 .sector-name-text {overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex-shrink:1}
 
 
 .sector-season-icons svg {width:16px;height:16px;vertical-align:middle}
-.region-sector {position:relative}
+.region-sector {position:relative;overflow:visible}
 .sector-admin-control {position:relative;display:inline-flex;align-items:center;flex-shrink:0;z-index:5}
 .sector-admin-edit {width:24px;height:24px;display:grid;place-items:center;border:0;border-radius:6px;background:transparent;color:var(--text-dim);cursor:pointer;padding:3px}
 .sector-admin-edit:hover {background:var(--card-alt);color:var(--accent)}
@@ -1428,6 +1428,8 @@ input[type="range"].grade-range:focus::-moz-range-thumb{box-shadow:0 0 0 3px var
 .sector-season-actions .sector-season-save {background:var(--accent);color:white;border-color:var(--accent)}
 .region-sector-name{
   min-width:0;
+  display:block;
+  overflow:visible;
 
   padding-left:0;
 
@@ -1435,35 +1437,31 @@ input[type="range"].grade-range:focus::-moz-range-thumb{box-shadow:0 0 0 3px var
   font-weight:600;
   color:var(--text);
 
-  overflow:hidden;
-  text-overflow:ellipsis;
   white-space:nowrap;
 }
 
-.region-sector-bar{
-  display:flex;
-  width:100%;
-  height:16px;
-  overflow:hidden;
-  border-radius:5px;
-  background:var(--gray-dim);
+/* Progression compacte à la place de la jauge */
+.region-sector-progress {
+  justify-self:end;
+  font-size:12px;
+  font-weight:700;
+  font-variant-numeric:tabular-nums;
+  white-space:nowrap;
+  color:var(--text-dim);
 }
-
-.region-sector-bar-done{
-  height:100%;
-  background:var(--green);
+.region-sector:has(.sector-seasons-editor) {z-index:30;}
+.region-sector.complete .region-sector-head {
+  background:color-mix(in srgb, var(--green) 12%, transparent);
+  border-radius:8px;
+  padding-left:7px;
+  padding-right:7px;
 }
-
-.region-sector-bar-todo{
-  height:100%;
-  background:var(--yellow);
+.region-sector.complete .region-sector-progress {
+  color:var(--green);
 }
-
-.region-sector-bar-other{
-  height:100%;
-  background:var(--gray);
+.region-sector.complete .region-sector-name {
+  color:var(--green);
 }
-
 .region-sector-count{
   width:38px;
   text-align:right;
@@ -1526,7 +1524,7 @@ input[type="range"].grade-range:focus::-moz-range-thumb{box-shadow:0 0 0 3px var
 @media(max-width:640px){
 
   .region-sector-head{
-    grid-template-columns:110px minmax(70px,1fr) 32px 18px;
+    grid-template-columns:minmax(0,1fr) 46px 18px;
     gap:8px;
   }
 
@@ -6130,7 +6128,7 @@ function regionsHtml(){
 
              return `
               <div
-                class="region-sector ${isOpen ? 'open' : ''}"
+                class="region-sector ${isOpen ? 'open' : ''} ${secteurStats.total > 0 && secteurStats.done === secteurStats.total ? 'complete' : ''}"
                 id="secteur-${encodeURIComponent(key)}">
 
                 <div
@@ -6179,27 +6177,8 @@ function regionsHtml(){
                     </span>
                   </span>
 
-                  <span class="region-sector-bar">
-
-                    <span
-                      class="region-sector-bar-done"
-                      style="width:${secteurStats.total ? (secteurStats.done / secteurStats.total) * 100 : 0}%">
-                    </span>
-
-                    <span
-                      class="region-sector-bar-todo"
-                      style="width:${secteurStats.total ? (secteurStats.todo / secteurStats.total) * 100 : 0}%">
-                    </span>
-
-                    <span
-                      class="region-sector-bar-other"
-                      style="width:${secteurStats.total ? (secteurStats.other / secteurStats.total) * 100 : 0}%">
-                    </span>
-
-                  </span>
-
-                  <span class="region-sector-count">
-                    ${secteurStats.total}
+                  <span class="region-sector-progress" title="Voies réalisées / total">
+                    ${secteurStats.done}/${secteurStats.total}
                   </span>
 
                   <span class="region-sector-chevron">
