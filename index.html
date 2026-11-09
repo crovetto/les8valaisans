@@ -10230,6 +10230,9 @@ document.querySelectorAll('[data-save-sector-seasons]').forEach(el => {
       state.filtersByView.regions.search = '';
 
       render();
+      // Revenir en haut après la navigation depuis le tableau de bord.
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      requestAnimationFrame(() => window.scrollTo(0, 0));
     };
 
   });
