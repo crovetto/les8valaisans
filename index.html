@@ -1396,16 +1396,23 @@ input[type="range"].grade-range:focus::-moz-range-thumb{box-shadow:0 0 0 3px var
 }
 
 .sector-season-icons {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  flex-shrink: 0;
+  display:grid;
+  grid-template-columns:repeat(2, 17px);
+  grid-auto-rows:17px;
+  align-content:center;
+  gap:2px 3px;
+  width:37px;
+  min-width:37px;
+  flex-shrink:0;
 }
+.sector-season-icons > span {display:flex;align-items:center;justify-content:center}
+.sector-name-content {gap:5px}
+.sector-name-text {overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex-shrink:1}
 
 
 .sector-season-icons svg {width:16px;height:16px;vertical-align:middle}
 .region-sector {position:relative}
-.sector-admin-control {position:absolute;left:0;top:9px;z-index:5}
+.sector-admin-control {position:relative;display:inline-flex;align-items:center;flex-shrink:0;z-index:5}
 .sector-admin-edit {width:24px;height:24px;display:grid;place-items:center;border:0;border-radius:6px;background:transparent;color:var(--text-dim);cursor:pointer;padding:3px}
 .sector-admin-edit:hover {background:var(--card-alt);color:var(--accent)}
 .sector-admin-edit svg {width:15px;height:15px}
@@ -1422,7 +1429,7 @@ input[type="range"].grade-range:focus::-moz-range-thumb{box-shadow:0 0 0 3px var
 .region-sector-name{
   min-width:0;
 
-  padding-left:26px;
+  padding-left:0;
 
   font-size:13px;
   font-weight:600;
@@ -2926,14 +2933,12 @@ function sectorSeasonsIcons(region, lieu, secteur) {
   const selected =
     SECTOR_SEASONS.get(sectorKey(region, lieu, secteur)) || [];
 
-  return selected.length
-    ? `<span class="sector-season-icons">
+  return `<span class="sector-season-icons">
         ${SEASON_OPTIONS
           .filter(s => selected.includes(s.id))
           .map(s => `<span title="${s.label}">${seasonIcon(s)}</span>`)
           .join('')}
-       </span>`
-    : '';
+       </span>`;
 }
 
 async function loadSectorSeasons() {
@@ -6128,46 +6133,14 @@ function regionsHtml(){
                 class="region-sector ${isOpen ? 'open' : ''}"
                 id="secteur-${encodeURIComponent(key)}">
 
-                <button
-                  class="region-sector-head"
+                <div
+                  class="region-sector-head" role="button" tabindex="0"
                   data-toggle-region-sector="${escapeHtml(key)}">
 
                   <span class="region-sector-name">
                     <span class="sector-name-content">
                       ${sectorSeasonsIcons(region, lieuName, secteurName)}
-                      <span>${escapeHtml(secteurName)}</span>
-                    </span>
-                  </span>
-
-                  <span class="region-sector-bar">
-
-                    <span
-                      class="region-sector-bar-done"
-                      style="width:${secteurStats.total ? (secteurStats.done / secteurStats.total) * 100 : 0}%">
-                    </span>
-
-                    <span
-                      class="region-sector-bar-todo"
-                      style="width:${secteurStats.total ? (secteurStats.todo / secteurStats.total) * 100 : 0}%">
-                    </span>
-
-                    <span
-                      class="region-sector-bar-other"
-                      style="width:${secteurStats.total ? (secteurStats.other / secteurStats.total) * 100 : 0}%">
-                    </span>
-
-                  </span>
-
-                  <span class="region-sector-count">
-                    ${secteurStats.total}
-                  </span>
-
-                  <span class="region-sector-chevron">
-                    ${isOpen ? '^' : '⌄'}
-                  </span>
-
-                </button>
-                 
+                      <span class="sector-name-text">${escapeHtml(secteurName)}</span>
                 ${state.user?.role === 'admin' ? `
                   <div class="sector-admin-control">
                     <button type="button" class="sector-admin-edit"
@@ -6203,7 +6176,38 @@ function regionsHtml(){
                     ` : ''}
                   </div>
                 ` : ''}
+                    </span>
+                  </span>
 
+                  <span class="region-sector-bar">
+
+                    <span
+                      class="region-sector-bar-done"
+                      style="width:${secteurStats.total ? (secteurStats.done / secteurStats.total) * 100 : 0}%">
+                    </span>
+
+                    <span
+                      class="region-sector-bar-todo"
+                      style="width:${secteurStats.total ? (secteurStats.todo / secteurStats.total) * 100 : 0}%">
+                    </span>
+
+                    <span
+                      class="region-sector-bar-other"
+                      style="width:${secteurStats.total ? (secteurStats.other / secteurStats.total) * 100 : 0}%">
+                    </span>
+
+                  </span>
+
+                  <span class="region-sector-count">
+                    ${secteurStats.total}
+                  </span>
+
+                  <span class="region-sector-chevron">
+                    ${isOpen ? '^' : '⌄'}
+                  </span>
+
+                </div>
+                 
                 ${isOpen ? `
                   <div class="region-sector-routes">
 
@@ -10094,8 +10098,12 @@ if(toggleNR){
 }
 
 
+document.querySelectorAll('.sector-seasons-editor').forEach(el => {
+  el.onclick = event => event.stopPropagation();
+});
 document.querySelectorAll('[data-edit-sector-seasons]').forEach(el => {
-  el.onclick = () => {
+  el.onclick = (event) => {
+    event.stopPropagation();
     const key = el.dataset.editSectorSeasons;
     state.editingSectorSeasons =
       state.editingSectorSeasons === key ? null : key;
@@ -10104,14 +10112,16 @@ document.querySelectorAll('[data-edit-sector-seasons]').forEach(el => {
 });
 
 document.querySelectorAll('[data-cancel-sector-seasons]').forEach(el => {
-  el.onclick = () => {
+  el.onclick = (event) => {
+    event.stopPropagation();
     state.editingSectorSeasons = null;
     render();
   };
 });
 
 document.querySelectorAll('[data-season-choice]').forEach(el => {
-  el.onclick = () => {
+  el.onclick = (event) => {
+    event.stopPropagation();
     const active = el.getAttribute('aria-pressed') !== 'true';
     el.setAttribute('aria-pressed', String(active));
     el.classList.toggle('selected', active);
@@ -10119,7 +10129,8 @@ document.querySelectorAll('[data-season-choice]').forEach(el => {
 });
 
 document.querySelectorAll('[data-save-sector-seasons]').forEach(el => {
-  el.onclick = async () => {
+  el.onclick = async (event) => {
+    event.stopPropagation();
     if (state.user?.role !== 'admin') return;
 
     const key = el.dataset.saveSectorSeasons;
@@ -10144,8 +10155,8 @@ document.querySelectorAll('[data-save-sector-seasons]').forEach(el => {
   .querySelectorAll('[data-toggle-region-sector]')
   .forEach(el=>{
 
-    el.onclick = ()=>{
-
+    el.onclick = (event)=>{
+      if (event.target.closest('.sector-admin-control')) return;
       const key =
         el.dataset.toggleRegionSector;
 
@@ -10156,7 +10167,13 @@ document.querySelectorAll('[data-save-sector-seasons]').forEach(el => {
 
       render();
     };
-
+    el.onkeydown = (event) => {
+      if (event.target !== el) return;
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        el.click();
+      }
+    };
   });
 
   document.querySelectorAll('[data-goto-region]').forEach(el=>{
