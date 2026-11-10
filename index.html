@@ -3334,7 +3334,7 @@ const state = {
     gradeMax: GRADE_ORDER[GRADE_ORDER.length-1],
     status: 'all',
     includeVariants: true,
-    includeNR: true
+    includeNR: false
   },
 
   regions: {
@@ -3938,7 +3938,7 @@ function activeFilterCount(){
     count++;
   }
 
-  if(!filters.includeNR){
+  if(state.view === 'accueil' ? filters.includeNR : !filters.includeNR){
     count++;
   }
 
@@ -3999,14 +3999,14 @@ function filterChipsHtml(){
     `);
   }
 
-  if(!filters.includeNR){
+  if(state.view === 'accueil' ? filters.includeNR : !filters.includeNR){
 
     chips.push(`
       <button
         class="filter-chip"
         data-clear-filter="nr">
 
-        NR exclus
+        ${state.view === 'accueil' ? 'NR inclus' : 'NR exclus'}
         <span>×</span>
 
       </button>
@@ -5124,10 +5124,10 @@ function accueilHtml(){
             </label>
 
             <label class="toggle" id="toggleNR">
-              <div class="switch ${!currentFilters().includeNR?'on':''}">
+              <div class="switch ${currentFilters().includeNR?'on':''}">
                 <div class="knob"></div>
               </div>
-              Exclure les NR
+              Inclure les NR
             </label>
 
           </div>
@@ -9397,7 +9397,7 @@ if(adminSearchInput){
       }
 
       if(filter === 'nr'){
-        filters.includeNR = true;
+        filters.includeNR = state.view === 'accueil' ? false : true;
       }
 
       render();
