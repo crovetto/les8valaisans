@@ -2755,6 +2755,33 @@ html[data-theme="light"] .tooltip b{
   color:white;
 }
 
+
+/* Carrousel des progressions personnalisées */
+.dashboard-stat.percentage{position:relative;display:flex;flex-direction:column;justify-content:center;overflow:hidden;touch-action:pan-y;user-select:none;}
+.percent-slide{width:100%;display:grid;grid-template-columns:minmax(0,1fr) 58px;align-items:center;gap:12px;min-height:74px;position:relative;}
+.percent-slide .dashboard-stat-sub{white-space:normal;overflow-wrap:anywhere;}
+.percent-slide-add{position:relative;z-index:2;touch-action:manipulation;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;width:100%;min-height:74px;background:none;border:0;color:var(--text);cursor:pointer;}
+.percent-slide-add .percent-big-plus{width:45px;height:45px;display:grid;place-items:center;border:2px dashed var(--accent);border-radius:50%;font-size:31px;line-height:1;color:var(--accent);}
+.percent-controls{position:relative;z-index:5;display:flex;align-items:center;justify-content:center;gap:9px;margin-top:8px;min-height:26px;}
+.percent-nav{position:relative;z-index:6;border:0;background:transparent;color:var(--text-dim);cursor:pointer;font-size:23px;line-height:1;padding:4px 10px;min-width:34px;min-height:30px;}
+.percent-nav:disabled{opacity:.25;cursor:default;}
+.percent-dot{width:9px;height:9px;border:0;border-radius:50%;background:var(--text-faint);opacity:.5;padding:0;cursor:pointer;position:relative;z-index:6;}
+.percent-dot.active{background:var(--accent);opacity:1;width:8px;height:8px;}
+.percent-delete{position:absolute;top:-12px;left:-10px;z-index:3;border:0;background:#e44958;color:white;width:25px;height:25px;border-radius:50%;font-size:19px;line-height:1;cursor:pointer;box-shadow:0 2px 7px #0005;}
+.dashboard-stat.percentage.jiggling{animation:percent-jiggle .17s ease-in-out infinite alternate;transform-origin:50% 50%;overflow:visible;}
+@keyframes percent-jiggle{from{transform:rotate(-1.2deg)}to{transform:rotate(1.2deg)}}
+.percent-edit-exit{position:absolute;right:12px;top:8px;border:0;background:transparent;color:var(--accent);font-size:11px;cursor:pointer;}
+.percent-modal-backdrop{position:fixed;inset:0;background:#0009;z-index:1100;display:flex;align-items:center;justify-content:center;padding:16px;}
+.percent-modal{background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:18px;padding:22px;width:min(430px,100%);max-height:85vh;overflow:auto;box-shadow:0 20px 70px #0008;}
+.percent-modal h3{margin:0 0 16px;}
+.percent-modal label{display:block;margin:12px 0 7px;font-size:13px;}
+.percent-modal input[type=text]{width:100%;border:1px solid var(--border);background:var(--bg);color:var(--text);border-radius:8px;padding:10px;font:inherit;}
+.percent-region-choice{display:flex!important;align-items:center;gap:10px;padding:7px 0;margin:0!important;cursor:pointer;}
+.percent-modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;}
+.percent-modal-actions button{border:1px solid var(--border);border-radius:9px;padding:9px 14px;background:var(--card);color:var(--text);cursor:pointer;}
+.percent-modal-actions button.primary{background:var(--accent);color:white;border-color:var(--accent);}
+@media(max-width:640px){.percent-slide{grid-template-columns:minmax(0,1fr) 46px;gap:8px}.dashboard-stat.percentage{padding-bottom:14px}}
+
 </style>
 <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
 </head>
@@ -3369,6 +3396,11 @@ const state = {
   }
 
 },
+  percentCustomSlides: [],
+  percentGlobalVisible: true,
+  percentSlideIndex: 0,
+  percentEditMode: false,
+  percentAddOpen: false,
   prefs: PersonalStore.getPrefs(),
   modalRouteId: null,
   editRouteMode: false,
@@ -3693,46 +3725,70 @@ function dashboardStatCard({title, value, sub, tone, iconType}){
   `;
 }
 
+// Les personnalisations sont stockées dans les métadonnées du compte Supabase Auth.
+function percentRegionNames(){return [...new Set(ROUTES.map(r=>r.region).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'fr'));}
+function percentSlides(){return [...(state.percentGlobalVisible?[{title:'Progression globale',regions:null,base:true}]:[]),...state.percentCustomSlides];}
+function percentSaveSlides(){
+  const slides=state.percentCustomSlides.map(x=>({title:x.title,regions:x.regions}));
+  // Sauvegarde immédiate locale, isolée par utilisateur, puis synchronisation Supabase.
+  if(state.user?.id){
+    localStorage.setItem('v8v_percent_slides_'+state.user.id,JSON.stringify(slides));
+    localStorage.setItem('v8v_percent_global_'+state.user.id,JSON.stringify(state.percentGlobalVisible));
+  }
+  supabaseClient.auth.updateUser({data:{dashboard_progressions:slides,dashboard_global_visible:state.percentGlobalVisible}}).then(({error})=>{
+    if(error) console.error('Sauvegarde des progressions Supabase :',error);
+  });
+}
+function percentOpenAdd(){state.percentAddOpen=true;state.percentEditMode=false;render();}
+function percentMove(delta){
+  state.percentSlideIndex=Math.max(0,Math.min(percentSlides().length,state.percentSlideIndex+delta));
+  state.percentEditMode=false;render();
+}
 function dashboardPercentCard(){
-
-  const total = ROUTES.length;
-
-  const done = ROUTES.filter(route =>
-    personalOf(route).status === 'done'
-  ).length;
-
-  const pct = total
-    ? (done / total) * 100
-    : 0;
-
-  const pctDisplay = pct.toFixed(1).replace('.', ',');
-
+  const slides=percentSlides();
+  const idx=Math.min(state.percentSlideIndex,slides.length);
+  const slide=slides[idx];
+  const isAdd=idx===slides.length;
+  const routes=slide?.regions ? ROUTES.filter(r=>slide.regions.includes(r.region)) : ROUTES;
+  const total=routes.length;
+  const done=routes.filter(route=>personalOf(route).status==='done').length;
+  const pct=total ? done/total*100 : 0;
+  const pctDisplay=pct.toFixed(1).replace('.',',');
   return `
-    <div class="dashboard-stat percentage">
-
-      <div class="dashboard-percent-text">
-
-        <div class="dashboard-stat-title">
-          Pourcentage réalisé
-        </div>
-
-        <div class="dashboard-stat-value">
-          ${pctDisplay}%
-        </div>
-
-        <div class="dashboard-stat-sub">
-          progression globale
-        </div>
-
+    <div class="dashboard-stat percentage ${state.percentEditMode && !isAdd ? 'jiggling' : ''}" id="percentCarousel" aria-label="Progressions personnalisées">
+      ${!isAdd ? `
+        <div class="percent-slide" id="percentSlideContent">
+          <div class="dashboard-percent-text">
+            <div class="dashboard-stat-title">Pourcentage réalisé</div>
+            <div class="dashboard-stat-value">${pctDisplay}%</div>
+            <div class="dashboard-stat-sub">${escapeHtml(slide.title)}</div>
+          </div>
+          <div class="dashboard-percent-ring" style="--progress:${pct}%"></div>
+        </div>` : `
+        <button type="button" class="percent-slide-add" id="percentAdd" aria-label="Ajouter une progression personnalisée">
+          <span class="percent-big-plus">+</span>
+          <span>Ajouter une progression</span>
+        </button>`}
+      ${state.percentEditMode && !isAdd ? `<button class="percent-delete" id="percentDelete" title="Supprimer cette progression" aria-label="Supprimer cette progression">×</button><button class="percent-edit-exit" id="percentEditExit">Terminer</button>` : ''}
+      <div class="percent-controls">
+        <button type="button" class="percent-nav" id="percentPrev" ${idx===0?'disabled':''} aria-label="Progression précédente">‹</button>
+        ${Array.from({length:slides.length+1},(_,i)=>`<button class="percent-dot ${i===idx?'active':''}" data-percent-index="${i}" aria-label="Diapositive ${i+1}"></button>`).join('')}
+        <button type="button" class="percent-nav" id="percentNext" ${idx===slides.length?'disabled':''} aria-label="Progression suivante">›</button>
       </div>
-
-      <div
-        class="dashboard-percent-ring"
-        style="--progress:${pct}%">
-      </div>
-
+    </div>`;
+}
+function percentAddModalHtml(){
+  if(!state.percentAddOpen)return '';
+  return `<div class="percent-modal-backdrop" id="percentModalBackdrop">
+    <div class="percent-modal" role="dialog" aria-modal="true" aria-labelledby="percentModalTitle">
+      <h3 id="percentModalTitle">Nouvelle progression</h3>
+      <label for="percentTitle">Nom de la progression</label>
+      <input id="percentTitle" type="text" maxlength="55" placeholder="Ex. Progression Valais" autocomplete="off">
+      <label>Régions à prendre en compte</label>
+      <div class="percent-regions">${percentRegionNames().map((r,i)=>`<label class="percent-region-choice"><input type="checkbox" class="percent-region-input" value="${i}"><span>${escapeHtml(r)}</span></label>`).join('')}</div>
+      <div class="percent-modal-actions"><button id="percentCancel">Annuler</button><button class="primary" id="percentCreate">Créer</button></div>
     </div>
-  `;
+  </div>`;
 }
 
 function dashboardDoneCard(){
@@ -4134,6 +4190,7 @@ function render(){
         viewHtml() +
         `</div>` +
         modalHtml() +
+        percentAddModalHtml() +
         contextAddRouteHtml() +
         installAppHtml() +
         toastHtml();
@@ -7329,6 +7386,86 @@ function toggleDoneStatus(id){
 
 /* ---------- 8. ÉVÉNEMENTS ---------- */
 function bindEvents(){
+  const carousel=document.getElementById('percentCarousel');
+  if(carousel){
+    // Toutes les commandes sont reliées explicitement à un clic, y compris sur mobile.
+    const goTo=index=>{
+      state.percentSlideIndex=Math.max(0,Math.min(percentSlides().length,index));
+      state.percentEditMode=false;
+      render();
+    };
+    const prev=document.getElementById('percentPrev');
+    const next=document.getElementById('percentNext');
+    if(prev)prev.addEventListener('click',e=>{e.stopPropagation();goTo(state.percentSlideIndex-1);});
+    if(next)next.addEventListener('click',e=>{e.stopPropagation();goTo(state.percentSlideIndex+1);});
+    carousel.querySelectorAll('[data-percent-index]').forEach(el=>el.addEventListener('click',e=>{
+      e.stopPropagation();goTo(Number(el.dataset.percentIndex));
+    }));
+    const add=document.getElementById('percentAdd');
+    if(add)add.addEventListener('click',e=>{e.stopPropagation();percentOpenAdd();});
+    const del=document.getElementById('percentDelete');
+    if(del)del.addEventListener('click',e=>{
+      e.stopPropagation();
+      if(!confirm('Supprimer cette progression ?'))return;
+      const selectedSlide=percentSlides()[state.percentSlideIndex];
+      if(!selectedSlide)return;
+      if(selectedSlide.base)state.percentGlobalVisible=false;
+      else state.percentCustomSlides.splice(state.percentSlideIndex-(state.percentGlobalVisible?1:0),1);
+      state.percentSlideIndex=Math.min(state.percentSlideIndex,percentSlides().length);
+      state.percentEditMode=false;percentSaveSlides();render();
+    });
+    const exit=document.getElementById('percentEditExit');
+    if(exit)exit.addEventListener('click',e=>{e.stopPropagation();state.percentEditMode=false;render();});
+
+
+    // Glissement tactile ou souris et appui long (600 ms) pour supprimer.
+    let startX=0,startY=0,holdTimer=null,tracking=false,held=false;
+    const clearHold=()=>{if(holdTimer!==null){clearTimeout(holdTimer);holdTimer=null;}};
+    carousel.addEventListener('pointerdown',e=>{
+      if(e.target.closest('button'))return;
+      tracking=true;held=false;startX=e.clientX;startY=e.clientY;
+      if(state.percentSlideIndex<percentSlides().length){
+        holdTimer=setTimeout(()=>{
+          held=true;tracking=false;
+          state.percentEditMode=true;render();
+        },600);
+      }
+    });
+    carousel.addEventListener('pointermove',e=>{
+      if(!tracking)return;
+      if(Math.abs(e.clientX-startX)>10 || Math.abs(e.clientY-startY)>10)clearHold();
+    });
+    carousel.addEventListener('pointerup',e=>{
+      clearHold();if(!tracking || held)return;
+      tracking=false;
+      const dx=e.clientX-startX,dy=e.clientY-startY;
+      if(Math.abs(dx)>35 && Math.abs(dx)>Math.abs(dy)*1.2){
+        goTo(state.percentSlideIndex+(dx<0?1:-1));
+      }
+    });
+    carousel.addEventListener('pointercancel',()=>{clearHold();tracking=false;});
+    carousel.addEventListener('contextmenu',e=>{
+      if(state.percentSlideIndex<percentSlides().length){
+        e.preventDefault();clearHold();state.percentEditMode=true;render();
+      }
+    });
+  }
+  if(state.percentAddOpen){
+    const close=()=>{state.percentAddOpen=false;render();};
+    document.getElementById('percentCancel').onclick=close;
+    document.getElementById('percentModalBackdrop').onclick=e=>{if(e.target.id==='percentModalBackdrop')close();};
+    document.getElementById('percentCreate').onclick=()=>{
+      const title=document.getElementById('percentTitle').value.trim();
+      const names=percentRegionNames();
+      const regions=[...document.querySelectorAll('.percent-region-input:checked')].map(x=>names[Number(x.value)]);
+      if(!title){alert('Indique un titre pour cette progression.');return;}
+      if(!regions.length){alert('Sélectionne au moins une région.');return;}
+      state.percentCustomSlides.push({title,regions});
+      state.percentSlideIndex=percentSlides().length-1;
+      state.percentAddOpen=false;percentSaveSlides();render();
+    };
+  }
+
   const filtersButton = document.getElementById('filtersButton'); //Menu Filtres
 
   if(filtersButton){
@@ -8619,6 +8756,19 @@ if(loginForm){
       return;
     }
 
+    // Les préférences du compte suivent l'utilisateur entre appareils.
+    const savedRemote=session.user.user_metadata?.dashboard_progressions;
+    let savedLocal=[];
+    try{savedLocal=JSON.parse(localStorage.getItem('v8v_percent_slides_'+session.user.id)||'[]');}catch(e){}
+    const saved=Array.isArray(savedRemote)?savedRemote:savedLocal;
+    state.percentCustomSlides=(Array.isArray(saved)?saved:[]).filter(x=>
+      x && typeof x.title==='string' && Array.isArray(x.regions)
+    ).map(x=>({title:x.title.slice(0,55),regions:x.regions.filter(r=>typeof r==='string')}));
+    const globalRemote=session.user.user_metadata?.dashboard_global_visible;
+    let globalLocal=true;
+    try{const v=localStorage.getItem('v8v_percent_global_'+session.user.id);if(v!==null)globalLocal=JSON.parse(v)!==false;}catch(e){}
+    state.percentGlobalVisible=typeof globalRemote==='boolean'?globalRemote:globalLocal;
+    state.percentSlideIndex=0;
     state.isAuthenticated = true;
     state.view = 'accueil';
 
