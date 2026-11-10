@@ -2760,9 +2760,10 @@ html[data-theme="light"] .tooltip b{
 .dashboard-stat.percentage{position:relative;display:flex;flex-direction:column;justify-content:center;overflow:hidden;touch-action:pan-y;user-select:none;}
 .percent-slide{width:100%;display:grid;grid-template-columns:minmax(0,1fr) 58px;align-items:center;gap:12px;min-height:74px;position:relative;}
 .percent-slide .dashboard-stat-sub{white-space:normal;overflow-wrap:anywhere;}
-.percent-slide-add{position:relative;z-index:2;touch-action:manipulation;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;width:100%;min-height:74px;background:none;border:0;color:var(--text);cursor:pointer;}
+.percent-slide-add{white-space:nowrap;font-size:clamp(10px,2.7vw,13px);position:relative;z-index:2;touch-action:manipulation;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;width:100%;min-height:74px;background:none;border:0;color:var(--text);cursor:pointer;}
+.percent-slide-add span:last-child{white-space:nowrap;max-width:100%;}
 .percent-slide-add .percent-big-plus{width:45px;height:45px;display:grid;place-items:center;border:2px dashed var(--accent);border-radius:50%;font-size:31px;line-height:1;color:var(--accent);}
-.percent-controls{position:relative;z-index:5;display:flex;align-items:center;justify-content:center;gap:9px;margin-top:8px;min-height:26px;}
+.percent-controls{position:absolute;left:0;right:0;bottom:1px;z-index:5;display:flex;align-items:center;justify-content:center;gap:9px;margin-top:0;min-height:26px;}
 .percent-nav{position:relative;z-index:6;border:0;background:transparent;color:var(--text-dim);cursor:pointer;font-size:23px;line-height:1;padding:4px 10px;min-width:34px;min-height:30px;}
 .percent-nav:disabled{opacity:.25;cursor:default;}
 .percent-dot{width:9px;height:9px;border:0;border-radius:50%;background:var(--text-faint);opacity:.5;padding:0;cursor:pointer;position:relative;z-index:6;}
@@ -2780,7 +2781,7 @@ html[data-theme="light"] .tooltip b{
 .percent-modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;}
 .percent-modal-actions button{border:1px solid var(--border);border-radius:9px;padding:9px 14px;background:var(--card);color:var(--text);cursor:pointer;}
 .percent-modal-actions button.primary{background:var(--accent);color:white;border-color:var(--accent);}
-@media(max-width:640px){.percent-slide{grid-template-columns:minmax(0,1fr) 46px;gap:8px}.dashboard-stat.percentage{padding-bottom:14px}}
+@media(max-width:640px){.percent-slide{grid-template-columns:minmax(0,1fr) 46px;gap:8px}.dashboard-stat.percentage{padding-bottom:14px}.percent-nav{display:none}}
 
 </style>
 <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
@@ -3759,9 +3760,8 @@ function dashboardPercentCard(){
       ${!isAdd ? `
         <div class="percent-slide" id="percentSlideContent">
           <div class="dashboard-percent-text">
-            <div class="dashboard-stat-title">Pourcentage réalisé</div>
+            <div class="dashboard-stat-title">${slide.base ? "Progression globale" : escapeHtml(slide.title)}</div>
             <div class="dashboard-stat-value">${pctDisplay}%</div>
-            <div class="dashboard-stat-sub">${escapeHtml(slide.title)}</div>
           </div>
           <div class="dashboard-percent-ring" style="--progress:${pct}%"></div>
         </div>` : `
@@ -7402,7 +7402,8 @@ function bindEvents(){
       e.stopPropagation();goTo(Number(el.dataset.percentIndex));
     }));
     const add=document.getElementById('percentAdd');
-    if(add)add.addEventListener('click',e=>{e.stopPropagation();percentOpenAdd();});
+    let ignoreAddClick=false;
+    if(add)add.addEventListener('click',e=>{e.stopPropagation();if(ignoreAddClick){ignoreAddClick=false;return;}percentOpenAdd();});
     const del=document.getElementById('percentDelete');
     if(del)del.addEventListener('click',e=>{
       e.stopPropagation();
@@ -7422,7 +7423,7 @@ function bindEvents(){
     let startX=0,startY=0,holdTimer=null,tracking=false,held=false;
     const clearHold=()=>{if(holdTimer!==null){clearTimeout(holdTimer);holdTimer=null;}};
     carousel.addEventListener('pointerdown',e=>{
-      if(e.target.closest('button'))return;
+      if(e.target.closest('button') && !e.target.closest('#percentAdd'))return;
       tracking=true;held=false;startX=e.clientX;startY=e.clientY;
       if(state.percentSlideIndex<percentSlides().length){
         holdTimer=setTimeout(()=>{
@@ -7440,6 +7441,7 @@ function bindEvents(){
       tracking=false;
       const dx=e.clientX-startX,dy=e.clientY-startY;
       if(Math.abs(dx)>35 && Math.abs(dx)>Math.abs(dy)*1.2){
+        if(e.target.closest('#percentAdd')){ignoreAddClick=true;setTimeout(()=>{ignoreAddClick=false;},350);}
         goTo(state.percentSlideIndex+(dx<0?1:-1));
       }
     });
