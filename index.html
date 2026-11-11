@@ -7551,9 +7551,37 @@ function bindEvents(){
   if(carousel){
     // Toutes les commandes sont reliées explicitement à un clic, y compris sur mobile.
     const goTo=index=>{
-      state.percentSlideIndex=Math.max(0,Math.min(percentSlides().length,index));
-      state.percentEditMode=false;
-      render();
+      const target=Math.max(0,Math.min(percentSlides().length,index));
+      const current=Math.min(state.percentSlideIndex,percentSlides().length);
+      if(target===current)return;
+      const direction=target>current?1:-1;
+      const content=carousel.querySelector('#percentSlideContent, #percentAdd');
+      const reducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      // Conserver l'interface fonctionnelle si les animations sont indisponibles.
+      if(!content || reducedMotion || !content.animate){
+        state.percentSlideIndex=target;state.percentEditMode=false;render();return;
+      }
+      if(carousel.dataset.sliding==='1')return;
+      carousel.dataset.sliding='1';
+      const duration=155;
+      content.animate([
+        {transform:'translateX(0)',opacity:1},
+        {transform:`translateX(${-direction*38}px)`,opacity:0}
+      ],{duration,easing:'ease-in',fill:'forwards'}).finished.catch(()=>{}).then(()=>{
+        state.percentSlideIndex=target;
+        state.percentEditMode=false;
+        render();
+        const newCarousel=document.getElementById('percentCarousel');
+        const incoming=newCarousel?.querySelector('#percentSlideContent, #percentAdd');
+        if(!incoming)return;
+        newCarousel.dataset.sliding='1';
+        incoming.animate([
+          {transform:`translateX(${direction*38}px)`,opacity:0},
+          {transform:'translateX(0)',opacity:1}
+        ],{duration:190,easing:'ease-out'}).finished.catch(()=>{}).then(()=>{
+          delete newCarousel.dataset.sliding;
+        });
+      });
     };
     const prev=document.getElementById('percentPrev');
     const next=document.getElementById('percentNext');
