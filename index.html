@@ -10816,9 +10816,39 @@ async function initializeApp(){
       return;
     }
 
+    // Afficher immédiatement l'application avec les préférences disponibles
+    // dans la session, sans attendre un second appel réseau Supabase Auth.
     restoreDashboardProgressions(session.user);
     state.isAuthenticated = true;
     state.view = 'accueil';
+
+    // Synchroniser ensuite les progressions en arrière-plan. L'interface
+    // est déjà visible ; une mise à jour ne déclenche pas l'écran de connexion.
+    void (async () => {
+      try {
+        const { data: freshAuth, error: freshAuthError } = await supabaseClient.auth.getUser();
+        if (freshAuthError) {
+          console.warn('Actualisation des progressions indisponible :', freshAuthError);
+          return;
+        }
+        if (!freshAuth?.user || freshAuth.user.id !== session.user.id ||
+            !state.isAuthenticated || state.user?.id !== session.user.id) return;
+
+        const remoteSlides = freshAuth.user.user_metadata?.dashboard_progressions;
+        const remoteVisible = freshAuth.user.user_metadata?.dashboard_global_visible;
+        if (Array.isArray(remoteSlides) || typeof remoteVisible === 'boolean') {
+          const previousSlides = JSON.stringify(state.percentCustomSlides);
+          const previousVisible = state.percentGlobalVisible;
+          // Ne remplacer que les préférences du carrousel, et seulement si
+          // elles diffèrent de celles déjà affichées.
+          restoreDashboardProgressions(freshAuth.user);
+          if (previousSlides !== JSON.stringify(state.percentCustomSlides) ||
+              previousVisible !== state.percentGlobalVisible) render();
+        }
+      } catch (refreshError) {
+        console.warn('Actualisation des progressions indisponible :', refreshError);
+      }
+    })();
 
   } else {
 
