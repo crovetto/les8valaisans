@@ -2819,7 +2819,7 @@ function visibleSector(region,lieu,secteur){
 }
 async function loadSectors(){
   const {data,error}=await supabaseClient.from('sectors')
-    .select('id,region,lieu,secteur,visibility,owner_id');
+    .select('id,region,lieu,secteur,visibility,owner_id,seasons');
   if(error){console.error('Erreur secteurs',error);return false;}
   SECTORS=data||[];return true;
 }
@@ -3018,40 +3018,36 @@ function sectorSeasonsIcons(region, lieu, secteur) {
 }
 
 async function loadSectorSeasons() {
-  const {data, error} = await supabaseClient
-    .from('sector_seasons')
-    .select('region,lieu,secteur,seasons');
-
-  if (error) {
-    console.error('Erreur chargement saisons :', error);
-    return;
-  }
-
   SECTOR_SEASONS = new Map(
-    (data || []).map(s => [
+    SECTORS.map(s => [
       sectorKey(s.region, s.lieu, s.secteur),
-      s.seasons || []
+      Array.isArray(s.seasons) ? s.seasons : []
     ])
   );
 }
 
 async function saveSectorSeasons(region, lieu, secteur, seasons) {
   if (state.user?.role !== 'admin') return false;
+  const selectedSector = visibleSector(region, lieu, secteur);
+  if (!selectedSector) {
+    alert('Secteur introuvable. Recharge la page.');
+    return false;
+  }
 
-  const {error} = await supabaseClient
-    .from('sector_seasons')
-    .upsert(
-      {region, lieu, secteur, seasons},
-      {onConflict: 'region,lieu,secteur'}
-    );
+  const {data, error} = await supabaseClient
+    .from('sectors')
+    .update({seasons})
+    .eq('id', selectedSector.id)
+    .select('id,seasons')
+    .single();
 
   if (error) {
     alert('Erreur : ' + error.message);
     return false;
   }
 
-  SECTOR_SEASONS.set(sectorKey(region, lieu, secteur), seasons);
-  // Fermer uniquement le sélecteur du secteur, pas le mode de réglage.
+  selectedSector.seasons = data.seasons || [];
+  SECTOR_SEASONS.set(sectorKey(region, lieu, secteur), selectedSector.seasons);
   state.sectorSeasonEditMode = true;
   state.editingSectorSeasons = null;
   render();
