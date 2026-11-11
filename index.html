@@ -2814,11 +2814,29 @@ html[data-theme="light"] .tooltip b{
 .private-invite-icon{border:1px solid var(--border);background:var(--card-alt);color:var(--text);border-radius:8px;padding:8px 11px;cursor:pointer;font-size:19px}
 .private-invite-icon:hover{border-color:var(--accent)}
 @media(max-width:600px){.private-invite-actions{width:100%;justify-content:flex-start;margin-left:30px}}
+
+/* Écran d'attente affiché immédiatement, remplacé par le premier render(). */
+#app .startup-loading{min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center;box-sizing:border-box;background:#0B1220;color:#E7ECF5;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;text-align:center;padding:24px}
+#app .startup-loading-inner{display:flex;flex-direction:column;align-items:center;gap:15px}
+#app .startup-loading-title{font-size:22px;font-weight:700;letter-spacing:.01em}
+#app .startup-loading-caption{font-size:13px;color:#A7B2C7}
+#app .startup-loading-spinner{width:24px;height:24px;border:2px solid #34415C;border-top-color:#4C8DFF;border-radius:50%;animation:startup-spin .8s linear infinite}
+@keyframes startup-spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){#app .startup-loading-spinner{animation:none;border-top-color:#4C8DFF}}
 </style>
 <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
 </head>
 <body>
-<div id="app"></div>
+<div id="app">
+  <div class="startup-loading" role="status" aria-live="polite" aria-label="Chargement de l’application">
+    <div class="startup-loading-inner">
+      <svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="#4C8DFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 38 19 13l8 14 5-8 11 19H5Z"/><path d="m13 24 6 5 4-5"/></svg>
+      <div class="startup-loading-title">Les 8 Valaisans</div>
+      <div class="startup-loading-spinner" aria-hidden="true"></div>
+      <div class="startup-loading-caption">Chargement de vos données…</div>
+    </div>
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
