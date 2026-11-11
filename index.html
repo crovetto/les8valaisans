@@ -3786,6 +3786,22 @@ function percentSaveSlides(){
     if(error) console.error('Sauvegarde des progressions Supabase :',error);
   });
 }
+function restoreDashboardProgressions(user){
+  // Les préférences du compte suivent l'utilisateur entre appareils.
+  const savedRemote=user.user_metadata?.dashboard_progressions;
+  let savedLocal=[];
+  try{savedLocal=JSON.parse(localStorage.getItem('v8v_percent_slides_'+user.id)||'[]');}catch(e){}
+  const saved=Array.isArray(savedRemote)?savedRemote:savedLocal;
+  state.percentCustomSlides=(Array.isArray(saved)?saved:[]).filter(x=>
+    x && typeof x.title==='string' && Array.isArray(x.regions)
+  ).map(x=>({title:x.title.slice(0,55),regions:x.regions.filter(r=>typeof r==='string')}));
+  const globalRemote=user.user_metadata?.dashboard_global_visible;
+  let globalLocal=true;
+  try{const v=localStorage.getItem('v8v_percent_global_'+user.id);if(v!==null)globalLocal=JSON.parse(v)!==false;}catch(e){}
+  state.percentGlobalVisible=typeof globalRemote==='boolean'?globalRemote:globalLocal;
+  state.percentSlideIndex=0;
+}
+
 function percentOpenAdd(){state.percentAddOpen=true;state.percentEditMode=false;render();}
 function percentMove(delta){
   state.percentSlideIndex=Math.max(0,Math.min(percentSlides().length,state.percentSlideIndex+delta));
@@ -8827,19 +8843,7 @@ if(loginForm){
       return;
     }
 
-    // Les préférences du compte suivent l'utilisateur entre appareils.
-    const savedRemote=data.user.user_metadata?.dashboard_progressions;
-    let savedLocal=[];
-    try{savedLocal=JSON.parse(localStorage.getItem('v8v_percent_slides_'+data.user.id)||'[]');}catch(e){}
-    const saved=Array.isArray(savedRemote)?savedRemote:savedLocal;
-    state.percentCustomSlides=(Array.isArray(saved)?saved:[]).filter(x=>
-      x && typeof x.title==='string' && Array.isArray(x.regions)
-    ).map(x=>({title:x.title.slice(0,55),regions:x.regions.filter(r=>typeof r==='string')}));
-    const globalRemote=data.user.user_metadata?.dashboard_global_visible;
-    let globalLocal=true;
-    try{const v=localStorage.getItem('v8v_percent_global_'+data.user.id);if(v!==null)globalLocal=JSON.parse(v)!==false;}catch(e){}
-    state.percentGlobalVisible=typeof globalRemote==='boolean'?globalRemote:globalLocal;
-    state.percentSlideIndex=0;
+    restoreDashboardProgressions(data.user);
     state.isAuthenticated = true;
     state.view = 'accueil';
 
@@ -10809,6 +10813,7 @@ async function initializeApp(){
       return;
     }
 
+    restoreDashboardProgressions(session.user);
     state.isAuthenticated = true;
     state.view = 'accueil';
 
