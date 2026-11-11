@@ -2809,6 +2809,11 @@ html[data-theme="light"] .tooltip b{
 .private-directory-empty{padding:18px 12px;color:var(--muted);font-size:14px}
 @media(max-width:600px){.private-directory-head{flex-wrap:wrap}.private-directory-copy{margin-left:30px}}
 
+.private-invite-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.private-invite-code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;color:var(--text);background:var(--card-alt);border:1px solid var(--border);border-radius:8px;padding:9px;overflow-wrap:anywhere;max-width:260px;user-select:all}
+.private-invite-icon{border:1px solid var(--border);background:var(--card-alt);color:var(--text);border-radius:8px;padding:8px 11px;cursor:pointer;font-size:19px}
+.private-invite-icon:hover{border-color:var(--accent)}
+@media(max-width:600px){.private-invite-actions{width:100%;justify-content:flex-start;margin-left:30px}}
 </style>
 <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
 </head>
@@ -6474,6 +6479,7 @@ function regionsContentHtml(){
 
 // Déroulés conservés entre les rafraîchissements de l'interface.
 const privateDirectoryExpanded = new Set();
+const privateInviteRevealed = new Map();
 
 function privateSectorDirectoryHtml(){
   const sectors = SECTORS.filter(s=>s.visibility==='private' && state.user && s.owner_id===state.user.id)
@@ -6493,7 +6499,9 @@ function privateSectorDirectoryHtml(){
               <small>${escapeHtml(sec.region)} · ${escapeHtml(sec.lieu)} · ${routes.length} voie${routes.length===1?'':'s'}</small></span>
             <span class="private-directory-chevron">${expanded?'⌃':'⌄'}</span>
           </button>
-          <button type="button" class="btn private-directory-copy" data-lv-invite="${sec.id}" title="Générer et copier un nouveau code valable 7 jours">Créer et copier un code</button>
+          <div class="private-invite-actions">${privateInviteRevealed.has(sec.id)
+            ? `<span class="private-invite-code">${escapeHtml(privateInviteRevealed.get(sec.id))}</span><button type="button" class="private-invite-icon" data-private-copy="${sec.id}" title="Copier le code" aria-label="Copier le code">⧉</button>`
+            : `<button type="button" class="btn private-directory-copy" data-lv-invite="${sec.id}">Afficher le code</button>`}</div>
         </div>
         ${expanded?`<div class="private-directory-routes">${routes.length?routes.map(routeRowHtml).join(''):'<div class="private-directory-empty">Aucune voie dans ce secteur.</div>'}</div>`:''}
       </section>`;
@@ -7637,18 +7645,22 @@ function bindEvents(){
     document.querySelectorAll('[data-lv-invite]').forEach(btn=>{
       btn.onclick=async e=>{
         e.stopPropagation();btn.disabled=true;
-        const {data,error}=await supabaseClient.rpc('lv_create_invite',{p_sector_id:btn.dataset.lvInvite});
+        const {data,error}=await supabaseClient.rpc('lv_get_or_create_invite',{p_sector_id:btn.dataset.lvInvite});
         btn.disabled=false;
         if(error){showToast(error.message,'error');return;}
-        // Chaque clic crée un nouveau code valable 7 jours (RPC existante).
-        // Copie automatique si autorisée, sinon sélection manuelle.
+        privateInviteRevealed.set(btn.dataset.lvInvite,data);
+        render();
+      };
+    });
+    document.querySelectorAll('[data-private-copy]').forEach(btn=>{
+      btn.onclick=async e=>{
+        e.stopPropagation();
+        const code=privateInviteRevealed.get(btn.dataset.privateCopy);
+        if(!code)return;
         try{
-          if(!navigator.clipboard?.writeText)throw new Error('Presse-papiers indisponible');
-          await navigator.clipboard.writeText(data);
-          showToast('Nouveau code copié ! Valable 7 jours.','success');
-        }catch(_){
-          window.prompt('Nouveau code valable 7 jours. Copie-le :',data);
-        }
+          await navigator.clipboard.writeText(code);
+          showToast('Code copié !','success');
+        }catch(_){window.prompt('Copie ce code :',code);}
       };
     });
     document.querySelectorAll('[data-lv-publish]').forEach(btn=>{
@@ -8022,7 +8034,7 @@ function bindEvents(){
       profileMenuLogout.onclick = async ()=>{
 
         const { error } =
-          await supabaseClient.auth.signOut();
+          await supabaseClient.auth.signOut({ scope: 'local' });
 
         if(error){
 
@@ -8816,16 +8828,16 @@ if(loginForm){
     }
 
     // Les préférences du compte suivent l'utilisateur entre appareils.
-    const savedRemote=session.user.user_metadata?.dashboard_progressions;
+    const savedRemote=data.user.user_metadata?.dashboard_progressions;
     let savedLocal=[];
-    try{savedLocal=JSON.parse(localStorage.getItem('v8v_percent_slides_'+session.user.id)||'[]');}catch(e){}
+    try{savedLocal=JSON.parse(localStorage.getItem('v8v_percent_slides_'+data.user.id)||'[]');}catch(e){}
     const saved=Array.isArray(savedRemote)?savedRemote:savedLocal;
     state.percentCustomSlides=(Array.isArray(saved)?saved:[]).filter(x=>
       x && typeof x.title==='string' && Array.isArray(x.regions)
     ).map(x=>({title:x.title.slice(0,55),regions:x.regions.filter(r=>typeof r==='string')}));
-    const globalRemote=session.user.user_metadata?.dashboard_global_visible;
+    const globalRemote=data.user.user_metadata?.dashboard_global_visible;
     let globalLocal=true;
-    try{const v=localStorage.getItem('v8v_percent_global_'+session.user.id);if(v!==null)globalLocal=JSON.parse(v)!==false;}catch(e){}
+    try{const v=localStorage.getItem('v8v_percent_global_'+data.user.id);if(v!==null)globalLocal=JSON.parse(v)!==false;}catch(e){}
     state.percentGlobalVisible=typeof globalRemote==='boolean'?globalRemote:globalLocal;
     state.percentSlideIndex=0;
     state.isAuthenticated = true;
@@ -9196,7 +9208,7 @@ if(loginForm){
         state.isAuthenticated = false;
 
 
-        await supabaseClient.auth.signOut();
+        await supabaseClient.auth.signOut({ scope: 'local' });
 
 
         render();
@@ -10811,6 +10823,9 @@ async function initializeApp(){
 
 setupAuthRecovery();
 
+// Afficher et activer immédiatement le formulaire de connexion.
+// Ne pas attendre la requête asynchrone getSession().
+render();
 initializeApp();
 
 window.addEventListener('resize', updateStatsGridLayout);
