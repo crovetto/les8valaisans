@@ -1454,6 +1454,22 @@ input[type="range"].grade-range:focus::-moz-range-thumb{box-shadow:0 0 0 3px var
 .sector-admin-edit:hover {background:var(--card-alt);color:var(--accent)}
 .sector-admin-edit svg {width:15px;height:15px}
 .sector-seasons-editor {position:absolute;left:0;top:28px;z-index:50;width:min(310px,calc(100vw - 35px));padding:12px;background:var(--card);border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.18)}
+/* Sur telephone, garder le panneau de saisonnalite entierement dans le viewport. */
+@media (max-width: 600px) {
+  .sector-seasons-editor {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: min(310px, calc(100vw - 24px));
+    max-width: calc(100vw - 24px);
+    max-height: calc(100dvh - 24px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    box-sizing: border-box;
+    z-index: 9999;
+  }
+}
 .sector-seasons-editor-title {display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:700;margin-bottom:10px}
 .sector-seasons-grid {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
 .sector-season-choice {display:flex;flex-direction:column;align-items:center;gap:5px;padding:9px 2px;border:1px solid var(--border);border-radius:9px;background:transparent;color:var(--text);font:inherit;font-size:10px;cursor:pointer}
