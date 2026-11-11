@@ -2813,6 +2813,23 @@ const supabaseClient =
 /* ---------- 1. DONNÉES COMMUNES (issues du CSV, en lecture seule) ---------- */
 // Les données sont injectées ci-dessous au moment du build.
 let ROUTES = [];
+let SECTORS = [];
+function visibleSector(region,lieu,secteur){
+  return SECTORS.find(s=>s.region===region && s.lieu===lieu && s.secteur===secteur);
+}
+async function loadSectors(){
+  const {data,error}=await supabaseClient.from('sectors')
+    .select('id,region,lieu,secteur,visibility,owner_id');
+  if(error){console.error('Erreur secteurs',error);return false;}
+  SECTORS=data||[];return true;
+}
+async function reloadClimbingData(){
+  if(!await loadSectors())return false;
+  if(!await loadRoutesFromSupabase())return false;
+  await loadSectorSeasons();
+  return true;
+}
+
 
 async function loadRoutesFromSupabase(){
 
@@ -2827,7 +2844,8 @@ async function loadRoutesFromSupabase(){
         voie,
         cotation,
         qualite,
-        variante
+        variante,
+        sector_id
       `)
       .order('id', {
         ascending: true
@@ -3420,6 +3438,7 @@ openGrade: null,
 newRouteVariant: false,
 newRouteNewLieu: false,
 newRouteNewSecteur: false,
+newSectorVisibility: 'public',
 newRouteRegion: '',
 newRouteLieu: '',
 newRouteSecteur: '',
@@ -5013,6 +5032,15 @@ function addRouteHtml(){
 
         </div>
 
+        ${(state.newRouteNewLieu || state.newRouteNewSecteur) && state.user.role === 'admin' ? `
+          <div class="profile-field">
+            <label>Visibilité du nouveau secteur</label>
+            <select id="newSectorVisibility">
+              <option value="public" ${state.newSectorVisibility==='public'?'selected':''}>Public</option>
+              <option value="private" ${state.newSectorVisibility==='private'?'selected':''}>Privé (sur invitation)</option>
+            </select>
+          </div>` : ''}
+
         <div class="profile-field">
 
           <label>
@@ -6281,6 +6309,17 @@ function regionsContentHtml(){
                  
                 ${isOpen ? `
                   <div class="region-sector-routes">
+                    ${(() => {
+                      const sec=visibleSector(region,lieuName,secteurName);
+                      return sec?.visibility==='private' ? `
+                        <div style="font-size:13px;margin-bottom:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                          <span>🔒 Secteur privé</span>
+                          ${sec.owner_id===state.user.id ? `
+                            <button class="btn" data-lv-invite="${sec.id}">Créer un code d’invitation</button>
+                            <button class="btn" data-lv-publish="${sec.id}">Rendre public</button>` : ''}
+                        </div>` : '';
+                    })()}
+
 
                     ${secteurRoutes
                       .sort((a,b)=>a.voie.localeCompare(b.voie))
@@ -6409,8 +6448,16 @@ function regionsContentHtml(){
 }
 
 
+function inviteJoinHtml(){
+ return `<div class="card" style="margin-bottom:14px;">
+ <div class="card-title">Accès à un secteur privé</div>
+ <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+ <input id="lvInviteCode" placeholder="Code d’invitation" style="flex:1;min-width:170px;" autocomplete="off">
+ <button class="btn" id="lvRedeemInvite">Rejoindre</button>
+ </div></div>`;
+}
 function regionsHtml(){
-  return `${regionsContentHtml()}${footerHtml()}`;
+  return `${inviteJoinHtml()}${regionsContentHtml()}${footerHtml()}`;
 }
 
 function crumbsHtml(){
@@ -7516,6 +7563,39 @@ function bindEvents(){
     };
 
   }
+    const joinPrivate = document.getElementById('lvRedeemInvite');
+    if(joinPrivate) joinPrivate.onclick=async()=>{
+      const code=document.getElementById('lvInviteCode')?.value?.trim();
+      if(!code){showToast('Saisis un code.','error');return;}
+      joinPrivate.disabled=true;
+      const {error}=await supabaseClient.rpc('lv_redeem_invite',{p_code:code});
+      if(error){showToast(error.message,'error');joinPrivate.disabled=false;return;}
+      await reloadClimbingData();await loadUserRoutes();render();
+      showToast('Secteur privé rejoint.','success');
+    };
+    document.querySelectorAll('[data-lv-invite]').forEach(btn=>{
+      btn.onclick=async e=>{
+        e.stopPropagation();btn.disabled=true;
+        const {data,error}=await supabaseClient.rpc('lv_create_invite',{p_sector_id:btn.dataset.lvInvite});
+        btn.disabled=false;
+        if(error){showToast(error.message,'error');return;}
+        // Afficher le code explicitement, même sans API presse-papiers.
+        window.prompt('Code valable 7 jours. Copie-le et envoie-le à la personne invitée :',data);
+      };
+    });
+    document.querySelectorAll('[data-lv-publish]').forEach(btn=>{
+      btn.onclick=async e=>{
+        e.stopPropagation();
+        if(!confirm('Rendre ce secteur public ? Cette action est irréversible.'))return;
+        btn.disabled=true;
+        const {error}=await supabaseClient.rpc('lv_publish_sector',{p_sector_id:btn.dataset.lvPublish});
+        if(error){showToast(error.message,'error');btn.disabled=false;return;}
+        await reloadClimbingData();render();showToast('Secteur rendu public.','success');
+      };
+    });
+    const sectorVisibility = document.getElementById('newSectorVisibility');
+    if(sectorVisibility) sectorVisibility.onchange=()=>{state.newSectorVisibility=sectorVisibility.value;};
+
     const newRouteVariantSwitch =
       document.getElementById('newRouteVariantSwitch');
 
@@ -7797,12 +7877,13 @@ function bindEvents(){
             route.region.trim().toLowerCase() === region.toLowerCase() &&
             route.lieu.trim().toLowerCase() === lieu.toLowerCase() &&
             route.secteur.trim().toLowerCase() === secteur.toLowerCase() &&
+            (!(!state.newRouteNewLieu && !state.newRouteNewSecteur) || route.sector_id === visibleSector(region,lieu,secteur)?.id) &&
             route.voie.trim().toLowerCase() === voie.toLowerCase() &&
             route.cotation === cotation
           );
 
 
-        if(duplicateRoute){
+        if(duplicateRoute && !(state.newRouteNewLieu || state.newRouteNewSecteur)){
 
           alert(
             'Cette voie existe déjà dans la base.'
@@ -7812,119 +7893,26 @@ function bindEvents(){
             'Ajouter la voie';
           return;
         }
-        // -----------------------------
-        // Générer le prochain ID
-        // -----------------------------
-
-        const maxRouteNumber =
-          ROUTES.reduce(
-            (max, route)=>{
-
-              const match =
-                String(route.id)
-                  .match(/^R(\d+)$/);
-
-              if(!match){
-                return max;
-              }
-
-              return Math.max(
-                max,
-                parseInt(match[1], 10)
-              );
-
-            },
-            0
-          );
-
-
-        const newRouteId =
-          'R' +
-          String(
-            maxRouteNumber + 1
-          ).padStart(4, '0');
-
-
-        // -----------------------------
-        // Création de la voie
-        // -----------------------------
-
-        const newRoute = {
-
-          id: newRouteId,
-
-          region: region,
-
-          lieu: lieu,
-
-          secteur: secteur,
-
-          voie: voie,
-
-          cotation: cotation,
-
-          qualite: qualite,
-
-          variante:
-            state.newRouteVariant
-
-        };
-
-
-        // -----------------------------
-        // Enregistrement Supabase
-        // -----------------------------
-
-        const {
-          data,
-          error
-        } =
-          await supabaseClient
-            .from('routes')
-            .insert(newRoute)
-            .select(`
-              id,
-              region,
-              lieu,
-              secteur,
-              voie,
-              cotation,
-              qualite,
-              variante
-            `)
-            .single();
-
-
-        if(error){
-
-          console.error(
-            'Erreur ajout voie :',
-            error
-          );
-
-          showToast(
-            'Impossible d’ajouter la voie.',
-            'error'
-          );
-            addRouteButton.disabled = false;
-            addRouteButton.textContent =
-              'Ajouter la voie';
-          return;
+        // Enregistrement atomique du secteur et de sa première voie.
+        const creatingSector = state.newRouteNewLieu || state.newRouteNewSecteur;
+        const selectedSector = creatingSector ? null : visibleSector(region,lieu,secteur);
+        if(!creatingSector && !selectedSector){
+          showToast('Secteur introuvable, recharge la page.','error');
+          addRouteButton.disabled=false;addRouteButton.textContent='Ajouter la voie';return;
         }
-
-
-        // -----------------------------
-        // Ajouter aussi dans le site
-        // sans devoir refresh
-        // -----------------------------
-
-        ROUTES.push(data);
-
-        ROUTES.sort(
-          (a,b)=>
-            a.id.localeCompare(b.id)
-        );
-
+        const {data,error} = await supabaseClient.rpc('lv_add_route',{
+          p_region:region,p_lieu:lieu,p_secteur:secteur,p_voie:voie,
+          p_cotation:cotation,p_qualite:qualite,p_variante:state.newRouteVariant,
+          p_sector_id:selectedSector?.id || null,
+          p_visibility:creatingSector && state.user.role==='admin' ?
+            (document.getElementById('newSectorVisibility')?.value || 'public') : 'public'
+        });
+        if(error){
+          console.error('Erreur ajout voie :',error);
+          showToast(error.message || 'Impossible d’ajouter la voie.','error');
+          addRouteButton.disabled=false;addRouteButton.textContent='Ajouter la voie';return;
+        }
+        await reloadClimbingData();
 
         // -----------------------------
         // Réinitialiser le formulaire
@@ -7935,6 +7923,7 @@ function bindEvents(){
         state.newRouteNewLieu = false;
 
         state.newRouteNewSecteur = false;
+        state.newSectorVisibility = 'public';
 
         state.newRouteRegion = '';
 
@@ -8724,7 +8713,7 @@ if(loginForm){
 
 
     const routesLoaded =
-      await loadRoutesFromSupabase();
+      await reloadClimbingData();
 
     if(!routesLoaded){
 
@@ -8944,7 +8933,7 @@ if(loginForm){
         // l'utilisateur est connecté immédiatement.
 
         const routesLoaded =
-          await loadRoutesFromSupabase();
+          await reloadClimbingData();
 
         if(!routesLoaded){
 
@@ -9849,136 +9838,39 @@ if(contextAddRouteSave){
 
 
 
-      // -----------------------------
-      // Générer ID
-      // -----------------------------
-
-      const maxRouteNumber =
-        ROUTES.reduce(
-          (max, route)=>{
-
-            const match =
-              String(route.id)
-                .match(/^R(\d+)$/);
-
-            if(!match){
-              return max;
-            }
-
-            return Math.max(
-              max,
-              parseInt(
-                match[1],
-                10
-              )
-            );
-
-          },
-          0
-        );
-
-
-      const newRouteId =
-        'R' +
-        String(
-          maxRouteNumber + 1
-        ).padStart(
-          4,
-          '0'
-        );
-
-
-
-      const newRoute = {
-
-        id: newRouteId,
-
-        region,
-
-        lieu,
-
-        secteur,
-
-        voie,
-
-        cotation,
-
-        qualite,
-
-        variante:
-          contextRouteVariant
-
-      };
-
-
-
-      // -----------------------------
-      // Supabase
-      // -----------------------------
-
-      const {
-        data,
-        error
-      } =
-        await supabaseClient
-          .from('routes')
-          .insert(newRoute)
-          .select(`
-            id,
-            region,
-            lieu,
-            secteur,
-            voie,
-            cotation,
-            qualite,
-            variante
-          `)
-          .single();
-
-
-
-      if(error){
-
-        console.error(
-          'Erreur ajout rapide voie :',
-          error
-        );
-
-
-        if(
-          error.code === '23505'
-        ){
-
-          showToast(
-            'Cette voie existe déjà dans la base.',
-            'error'
-          );
-
-        } else {
-
-          showToast(
-            'Impossible d’ajouter la voie.',
-            'error'
-          );
-
-        }
-
+      // Ajouter via la fonction sécurisée, y compris depuis le menu contextuel.
+      const selectedSector = visibleSector(region, lieu, secteur);
+      if(!selectedSector){
+        showToast('Secteur introuvable. Recharge la page.', 'error');
         return;
       }
 
-
-
-      // -----------------------------
-      // Ajouter localement
-      // -----------------------------
-
-      ROUTES.push(data);
-
-      ROUTES.sort(
-        (a,b)=>
-          a.id.localeCompare(b.id)
-      );
-
+      contextAddRouteSave.disabled = true;
+      try {
+        const {error} = await supabaseClient.rpc('lv_add_route', {
+          p_region: region,
+          p_lieu: lieu,
+          p_secteur: secteur,
+          p_voie: voie,
+          p_cotation: cotation,
+          p_qualite: qualite,
+          p_variante: contextRouteVariant,
+          p_sector_id: selectedSector.id,
+          p_visibility: 'public'
+        });
+        if(error){
+          console.error('Erreur ajout rapide voie :', error);
+          showToast(error.message || 'Impossible d’ajouter la voie.', 'error');
+          return;
+        }
+        await reloadClimbingData();
+      } catch(err) {
+        console.error('Erreur ajout rapide voie :', err);
+        showToast('Impossible d’ajouter la voie.', 'error');
+        return;
+      } finally {
+        contextAddRouteSave.disabled = false;
+      }
 
       state.contextAddRoute = null;
 
@@ -10801,7 +10693,7 @@ async function initializeApp(){
     }
 
     const routesLoaded =
-      await loadRoutesFromSupabase();
+      await reloadClimbingData();
 
     if(!routesLoaded){
 
