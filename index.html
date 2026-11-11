@@ -5301,9 +5301,12 @@ function recentRoutesHtml(){
       x.personal.status === 'done' &&
       x.personal.completedAt
     )
-    .sort((a,b) =>
-      b.personal.completedAt.localeCompare(a.personal.completedAt)
-    )
+    .sort((a,b) => {
+      // Date décroissante ; à date égale, cotation la plus difficile d'abord.
+      const byDate = b.personal.completedAt.localeCompare(a.personal.completedAt);
+      if (byDate !== 0) return byDate;
+      return gradeIndex(b.route.cotation) - gradeIndex(a.route.cotation);
+    })
     .slice(0,4);
 
   return `
