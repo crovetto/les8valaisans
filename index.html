@@ -1160,6 +1160,14 @@ html[data-theme="dark"] .btn.danger{
 }
 .switch.on .knob{left:18px;}
 
+
+/* Saisie du code d’invitation — couleurs du thème */
+.private-invite-form{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+.private-invite-form #lvInviteCode{flex:1;min-width:170px;min-height:42px;background:var(--card-alt);color:var(--text);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;font:inherit;transition:border-color .2s,box-shadow .2s;}
+.private-invite-form #lvInviteCode::placeholder{color:var(--muted);opacity:.85;}
+.private-invite-form #lvInviteCode:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent);}
+.private-invite-form .btn{min-height:42px;}
+
 /* ---- Inputs ---- */
 input[type="text"],
 input[type="date"],
@@ -2782,6 +2790,24 @@ html[data-theme="light"] .tooltip b{
 .percent-modal-actions button{border:1px solid var(--border);border-radius:9px;padding:9px 14px;background:var(--card);color:var(--text);cursor:pointer;}
 .percent-modal-actions button.primary{background:var(--accent);color:white;border-color:var(--accent);}
 @media(max-width:640px){.percent-slide{grid-template-columns:minmax(0,1fr) 46px;gap:8px}.dashboard-stat.percentage{padding-bottom:14px}.percent-nav{display:none}}
+
+
+.private-directory{margin-bottom:14px}
+.private-directory-count{display:inline-flex;align-items:center;justify-content:center;padding:2px 9px;margin-left:8px;border-radius:99px;background:var(--card-alt);color:var(--muted);font-size:13px}
+.private-directory-list{display:grid;gap:10px}
+.private-directory-sector{border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--card-alt)}
+.private-directory-head{display:flex;align-items:center;gap:12px;padding:8px 12px}
+.private-directory-toggle{display:flex;align-items:center;gap:12px;flex:1;min-width:0;text-align:left;border:0;background:transparent;color:var(--text);font:inherit;cursor:pointer;padding:6px 0}
+.private-directory-toggle:hover strong{color:var(--accent)}
+.private-directory-lock{font-size:18px}
+.private-directory-names{display:flex;flex-direction:column;gap:4px;min-width:0}
+.private-directory-names strong{font-size:15px}
+.private-directory-names small{color:var(--muted);font-size:12px}
+.private-directory-chevron{margin-left:auto;color:var(--muted)}
+.private-directory-copy{flex-shrink:0;font-size:12px}
+.private-directory-routes{border-top:1px solid var(--border);padding:10px 12px}
+.private-directory-empty{padding:18px 12px;color:var(--muted);font-size:14px}
+@media(max-width:600px){.private-directory-head{flex-wrap:wrap}.private-directory-copy{margin-left:30px}}
 
 </style>
 <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
@@ -4437,6 +4463,7 @@ function topnavHtml(){
   const tabs = [
     {id:'accueil', label:'Accueil', icon:iconHome()},
     {id:'regions', label:'Régions', icon:iconLayers()},
+    {id:'privateSectors', label:'Secteurs privés', icon:'<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>'},
     {id:'cotations', label:'Cotations', icon:iconGrades()},
     {id:'todo', label:'À faire', icon:iconCheck()},
 
@@ -4565,6 +4592,7 @@ function topnavHtml(){
 function viewHtml(){
   if(state.view === 'accueil') return accueilHtml();
   if(state.view === 'regions') return regionsHtml();
+  if(state.view === 'privateSectors') return `${inviteJoinHtml()}${privateSectorDirectoryHtml()}${footerHtml()}`;
   if(state.view === 'cotations') return cotationsHtml();
   if(state.view === 'todo') return `${todoHtml()}${footerHtml()}`;
   if(state.view === 'params') return paramsHtml();
@@ -6444,16 +6472,45 @@ function regionsContentHtml(){
 }
 
 
+// Déroulés conservés entre les rafraîchissements de l'interface.
+const privateDirectoryExpanded = new Set();
+
+function privateSectorDirectoryHtml(){
+  const sectors = SECTORS.filter(s=>s.visibility==='private' && state.user && s.owner_id===state.user.id)
+    .sort((a,b)=>[a.region,a.lieu,a.secteur].join(' / ').localeCompare([b.region,b.lieu,b.secteur].join(' / '),'fr'));
+  return `<div class="card private-directory">
+    <div class="card-title">Mes secteurs privés <span class="private-directory-count">${sectors.length}</span></div>
+    ${sectors.length ? `<div class="private-directory-list">${sectors.map(sec=>{
+      const routes=ROUTES.filter(r=>r.sector_id===sec.id ||
+        (!r.sector_id && r.region===sec.region && r.lieu===sec.lieu && r.secteur===sec.secteur))
+        .sort((a,b)=>String(a.voie).localeCompare(String(b.voie),'fr'));
+      const expanded=privateDirectoryExpanded.has(sec.id);
+      return `<section class="private-directory-sector">
+        <div class="private-directory-head">
+          <button type="button" class="private-directory-toggle" data-private-toggle="${sec.id}" aria-expanded="${expanded}">
+            <span class="private-directory-lock">🔒</span>
+            <span class="private-directory-names"><strong>${escapeHtml(sec.secteur)}</strong>
+              <small>${escapeHtml(sec.region)} · ${escapeHtml(sec.lieu)} · ${routes.length} voie${routes.length===1?'':'s'}</small></span>
+            <span class="private-directory-chevron">${expanded?'⌃':'⌄'}</span>
+          </button>
+          <button type="button" class="btn private-directory-copy" data-lv-invite="${sec.id}" title="Générer et copier un nouveau code valable 7 jours">Créer et copier un code</button>
+        </div>
+        ${expanded?`<div class="private-directory-routes">${routes.length?routes.map(routeRowHtml).join(''):'<div class="private-directory-empty">Aucune voie dans ce secteur.</div>'}</div>`:''}
+      </section>`;
+    }).join('')}</div>`:'<div class="private-directory-empty">Tu n’as pas encore créé de secteur privé.</div>'}
+  </div>`;
+}
+
 function inviteJoinHtml(){
  return `<div class="card" style="margin-bottom:14px;">
  <div class="card-title">Accès à un secteur privé</div>
- <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
- <input id="lvInviteCode" placeholder="Code d’invitation" style="flex:1;min-width:170px;" autocomplete="off">
+ <div class="private-invite-form">
+ <input id="lvInviteCode" type="text" placeholder="Code d’invitation" autocomplete="off" aria-label="Code d’invitation">
  <button class="btn" id="lvRedeemInvite">Rejoindre</button>
  </div></div>`;
 }
 function regionsHtml(){
-  return `${inviteJoinHtml()}${regionsContentHtml()}${footerHtml()}`;
+  return `${regionsContentHtml()}${footerHtml()}`;
 }
 
 function crumbsHtml(){
@@ -7569,14 +7626,29 @@ function bindEvents(){
       await reloadClimbingData();await loadUserRoutes();render();
       showToast('Secteur privé rejoint.','success');
     };
+    document.querySelectorAll('[data-private-toggle]').forEach(btn=>{
+      btn.onclick=()=>{
+        const id=btn.dataset.privateToggle;
+        if(privateDirectoryExpanded.has(id))privateDirectoryExpanded.delete(id);
+        else privateDirectoryExpanded.add(id);
+        render();
+      };
+    });
     document.querySelectorAll('[data-lv-invite]').forEach(btn=>{
       btn.onclick=async e=>{
         e.stopPropagation();btn.disabled=true;
         const {data,error}=await supabaseClient.rpc('lv_create_invite',{p_sector_id:btn.dataset.lvInvite});
         btn.disabled=false;
         if(error){showToast(error.message,'error');return;}
-        // Afficher le code explicitement, même sans API presse-papiers.
-        window.prompt('Code valable 7 jours. Copie-le et envoie-le à la personne invitée :',data);
+        // Chaque clic crée un nouveau code valable 7 jours (RPC existante).
+        // Copie automatique si autorisée, sinon sélection manuelle.
+        try{
+          if(!navigator.clipboard?.writeText)throw new Error('Presse-papiers indisponible');
+          await navigator.clipboard.writeText(data);
+          showToast('Nouveau code copié ! Valable 7 jours.','success');
+        }catch(_){
+          window.prompt('Nouveau code valable 7 jours. Copie-le :',data);
+        }
       };
     });
     document.querySelectorAll('[data-lv-publish]').forEach(btn=>{
